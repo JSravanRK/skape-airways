@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flight Status — Skape Airways</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <style>
+    .status-timeline { display:flex; flex-direction:column; gap:0; }
+    .tl-item { display:flex; gap:1rem; }
+    .tl-dot-col { display:flex; flex-direction:column; align-items:center; }
+    .tl-dot { width:14px; height:14px; border-radius:50%; border:2.5px solid; flex-shrink:0; margin-top:3px; }
+    .tl-line { flex:1; width:2px; background:var(--cream-d); margin:4px 0; min-height:32px; }
+    .tl-content { padding-bottom:1.25rem; }
+    .tl-dot.done { background:var(--success); border-color:var(--success); }
+    .tl-dot.active { background:var(--gold); border-color:var(--gold); box-shadow:0 0 0 4px rgba(201,168,76,.2); }
+    .tl-dot.pending { background:transparent; border-color:var(--cream-d); }
+    .pulse { animation:pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<!-- PAGE HERO -->
+<div class="page-hero-bar">
+  <div class="container">
+    <h1>Flight Status</h1>
+    <p>Track any Skape Airways flight in real time — no login required</p>
+  </div>
+</div>
+
+<div class="container section-sm" style="padding-top:2rem;padding-bottom:3rem;max-width:760px">
+
+  <!-- SEARCH FORM -->
+  <div class="card" style="margin-bottom:2rem">
+    <div style="margin-bottom:1.25rem">
+      <div class="section-label">Look up a flight</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:1rem;align-items:end">
+      <div class="form-group">
+        <label>Flight Number</label>
+        <input type="text" id="status-flight-no" placeholder="e.g. SK-204" style="text-transform:uppercase"/>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="status-date"/>
+      </div>
+      <button class="btn btn-gold" id="status-btn" onclick="checkStatus()">Track Flight</button>
+    </div>
+    <div id="status-alert" style="margin-top:.75rem"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="status-result" class="hidden"></div>
+
+  <!-- INFO NOTE -->
+  <div class="alert alert-info" style="font-size:.85rem">
+    ℹ️ Flight status is updated every 5 minutes. For real-time gate information please check the airport displays.
+  </div>
+</div>
+
+<footer style="background:var(--deep);border-top:1px solid rgba(201,168,76,.1)">
+  <div class="footer-inner"><div class="footer-bottom"><span>© 2026 <span class="footer-gold">Skape Airways</span></span></div></div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  renderNav('status');
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('status-date').value = today;
+  document.getElementById('status-date').max   = today;
+
+  // Auto-fill from query string (e.g. from bookings page)
+  const p = new URLSearchParams(location.search);
+  if (p.get('fn')) { document.getElementById('status-flight-no').value = p.get('fn').toUpperCase(); checkStatus(); }
+
+  // Simulate flight progress based on current time vs departure/arrival
+  function computeStatusFromFlight(flight) {
+    const now    = new Date();
+    const depart = new Date(flight.departureTime);
+    const arrive = new Date(flight.arrivalTime);
+    const statusMap = {
+      SCHEDULED:        { label:'Scheduled',      color:'var(--primary)',  emoji:'📋' },
+      BOARDING:         { label:'Boarding Now',    color:'var(--gold-d)',   emoji:'🚪' },
+      DEPARTED:         { label:'In Flight',       color:'#16a34a',         emoji:'✈' },
+      ARRIVED:          { label:'Landed',          color:'#16a34a',         emoji:'✅' },
+      DELAYED:          { label:'Delayed',         color:'var(--warning)',  emoji:'⏳' },
+      CANCELLED_FLIGHT: { label:'Cancelled',       color:'var(--danger)',   emoji:'❌' },
+    };
+    const info = statusMap[flight.status] || { label: flight.status, color:'var(--muted)', emoji:'✈' };
+
+    // Progress bar percentage
+    let progress = 0;
+    if (flight.status === 'ARRIVED')                     progress = 100;
+    else if (flight.status === 'DEPARTED' && now > depart) {
+      const total = arrive - depart;
+      const done  = now - depart;
+      progress = Math.min(95, Math.round((done / total) * 100));
+    } else if (flight.status === 'BOARDING')             progress = 5;
+
+    // Timeline steps
+    const steps = [
+      { label:'Check-in Open',   done: now >= new Date(depart.getTime() - 2*3600000), active: false },
+      { label:'Boarding',        done: ['BOARDING','DEPARTED','ARRIVED'].includes(flight.status), active: flight.status==='BOARDING' },
+      { label:'Departed',        done: ['DEPARTED','ARRIVED'].includes(flight.status), active: flight.status==='DEPARTED' },
+      { label:`Arrived · ${flight.toCity}`, done: flight.status==='ARRIVED', active: false },
+    ];
+
+    return { info, progress, steps };
+  }
+
+  async function checkStatus() {
+    const flightNo = document.getElementById('status-flight-no').value.trim().toUpperCase();
+    const date     = document.getElementById('status-date').value;
+    if (!flightNo) { showAlert('status-alert','Please enter a flight number.','error'); return; }
+    if (!date)     { showAlert('status-alert','Please select a date.','error'); return; }
+
+    const btn = document.getElementById('status-btn');
+    setLoading(btn, true);
+    const resultEl = document.getElementById('status-result');
+    resultEl.innerHTML = '<div class="spinner"></div>';
+    resultEl.classList.remove('hidden');
+
+    try {
+      // Search all flights for that date and find the matching number
+      const allFlights = await get(`/flights/search?from=&to=&date=${date}`).catch(() => []);
+
+      // Try direct approach: search by flight number via admin endpoint or all-flights
+      const flights = await get(`/flights?date=${date}`).catch(() => allFlights);
+      const flight  = (Array.isArray(flights) ? flights : []).find(f =>
+        f.flightNumber && f.flightNumber.toUpperCase() === flightNo
+      );
+
+      if (!flight) {
+        resultEl.innerHTML = `<div class="card text-center" style="padding:3rem">
+          <div style="font-size:2.5rem;margin-bottom:.75rem">🔍</div>
+          <h3 style="font-size:1.3rem;margin-bottom:.5rem">Flight Not Found</h3>
+          <p class="text-muted" style="font-size:.9rem">No flight <strong>${flightNo}</strong> found on ${formatDate(date+'T00:00:00')}.<br>Please check the flight number and date.</p>
+        </div>`;
+        return;
+      }
+
+      const { info, progress, steps } = computeStatusFromFlight(flight);
+      const pct = progress;
+
+      resultEl.innerHTML = `
+        <div class="ticket" style="margin-bottom:1.5rem">
+          <div class="ticket-header">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+              <div>
+                <div style="font-size:.72rem;opacity:.55;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem">Flight Status</div>
+                <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:600">${flight.flightNumber}</div>
+                <div style="font-size:.85rem;opacity:.65;margin-top:.2rem">${flight.airlineName || 'Skape Airways'}</div>
+              </div>
+              <div style="text-align:right">
+                <div style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:.4rem 1rem;font-size:.8rem;font-weight:700">
+                  <span class="${['DEPARTED'].includes(flight.status)?'pulse':''}">${info.emoji}</span> ${info.label}
+                </div>
+                <div style="font-size:.75rem;opacity:.5;margin-top:.5rem">${formatDate(flight.departureTime)}</div>
+              </div>
+            </div>
+
+            <!-- Route display -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,.1)">
+              <div>
+                <div style="font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:600;line-height:1">${flight.fromCode}</div>
+                <div style="font-size:.78rem;opacity:.55;margin-top:.2rem">${flight.fromCity}</div>
+                <div style="font-size:.82rem;font-weight:600;color:var(--gold-l);margin-top:.3rem">${formatTime(flight.departureTime)}</div>
+              </div>
+              <div style="text-align:center;flex:1;padding:0 1.5rem">
+                <div style="font-size:.72rem;opacity:.5;margin-bottom:.4rem">${formatDuration(flight.durationMinutes)}</div>
+                <div style="position:relative;height:3px;background:rgba(255,255,255,.12);border-radius:4px">
+                  <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:linear-gradient(90deg,var(--gold-d),var(--gold-l));border-radius:4px;transition:width .8s ease"></div>
+                  ${pct > 5 && pct < 95 ? `<div style="position:absolute;top:-7px;left:${pct}%;transform:translateX(-50%);font-size:1rem" class="pulse">✈</div>` : ''}
+                </div>
+                <div style="font-size:.68rem;opacity:.4;margin-top:.4rem">Non-stop</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:600;line-height:1">${flight.toCode}</div>
+                <div style="font-size:.78rem;opacity:.55;margin-top:.2rem">${flight.toCity}</div>
+                <div style="font-size:.82rem;font-weight:600;color:var(--gold-l);margin-top:.3rem">${formatTime(flight.arrivalTime)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ticket-body">
+            <!-- Flight details -->
+            <div class="ticket-row" style="margin-bottom:1.5rem">
+              <div class="ticket-field"><label>Departure</label><span>${formatDateTime(flight.departureTime)}</span></div>
+              <div class="ticket-field"><label>Arrival</label><span>${formatDateTime(flight.arrivalTime)}</span></div>
+              <div class="ticket-field"><label>Seats Available</label><span>${seatUrgencyBadge(flight.availableSeats)}</span></div>
+            </div>
+
+            <hr class="ticket-divider"/>
+
+            <!-- Timeline -->
+            <div style="margin-top:1.25rem">
+              <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:1rem">Journey Timeline</div>
+              <div class="status-timeline">
+                ${steps.map((s,i) => `
+                  <div class="tl-item">
+                    <div class="tl-dot-col">
+                      <div class="tl-dot ${s.active?'active':s.done?'done':'pending'} ${s.active?'pulse':''}"></div>
+                      ${i < steps.length-1 ? `<div class="tl-line" style="background:${s.done?'var(--success)':'var(--cream-d)'}"></div>` : ''}
+                    </div>
+                    <div class="tl-content">
+                      <div style="font-size:.88rem;font-weight:${s.done||s.active?'600':'400'};color:${s.done?'var(--success)':s.active?'var(--gold-d)':'var(--muted)'}">${s.label}</div>
+                      ${s.active ? '<div style="font-size:.75rem;color:var(--gold-d);font-weight:600;margin-top:.15rem">● In progress</div>' : ''}
+                    </div>
+                  </div>`).join('')}
+              </div>
+            </div>
+
+            <hr class="ticket-divider"/>
+
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem">
+              <a href="/pages/search.html?from=${flight.fromCode}&to=${flight.toCode}&date=${date}" class="btn btn-outline btn-sm">Book This Route →</a>
+              <a href="/pages/bookings.html" class="btn btn-ghost btn-sm">My Bookings</a>
+            </div>
+          </div>
+        </div>`;
+    } catch(e) {
+      resultEl.innerHTML = `<div class="alert alert-error">⚠️ Could not fetch flight status: ${e.message}</div>`;
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+</script>
+</body>
+</html>

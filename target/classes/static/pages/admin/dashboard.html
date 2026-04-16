@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — Skape Airways</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1.5rem; }
+    .chart-card { background: var(--white); border-radius: var(--radius); padding: 1.5rem; border: 1px solid var(--cream-d); box-shadow: var(--shadow-sm); }
+    .chart-card h4 { font-size: .88rem; font-weight: 700; color: var(--text-soft); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .06em; }
+    @media(max-width:800px){ .chart-grid{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<div class="admin-layout">
+  <aside class="admin-sidebar" style="position:relative">
+    <div style="padding:1.5rem 1.5rem 1rem;border-bottom:1px solid rgba(201,168,76,.1);margin-bottom:.5rem">
+      <div style="font-size:.58rem;font-weight:700;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.18em">Control Center</div>
+    </div>
+    <a href="/pages/admin/dashboard.html" class="sidebar-link active"><span class="icon">📊</span> Dashboard</a>
+    <a href="/pages/admin/flights.html"   class="sidebar-link"><span class="icon">✈</span> Flights</a>
+    <a href="/pages/admin/bookings.html"  class="sidebar-link"><span class="icon">🎫</span> Bookings</a>
+    <a href="/pages/admin/users.html"     class="sidebar-link"><span class="icon">👥</span> Users</a>
+    <a href="/pages/admin/airports.html"  class="sidebar-link"><span class="icon">🏢</span> Airports</a>
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem;border-top:1px solid rgba(201,168,76,.1)">
+      <button onclick="Auth.logout()" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);color:rgba(255,130,130,.75);cursor:pointer;font-size:.82rem;padding:.5rem .9rem;border-radius:7px;font-family:'Outfit',sans-serif;width:100%;transition:all .2s">🚪 Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="admin-content">
+    <div class="admin-header">
+      <div>
+        <div class="section-label">Overview</div>
+        <h1>Analytics Dashboard</h1>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <span class="text-muted" id="last-updated" style="font-size:.82rem"></span>
+        <button onclick="loadDashboard()" class="btn btn-ghost btn-sm">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div id="spinner" class="spinner"></div>
+    <div id="dashboard-content" class="hidden">
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h4>Monthly Revenue (₹)</h4>
+          <canvas id="revenueChart" height="220"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Monthly Bookings</h4>
+          <canvas id="bookingChart" height="220"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Booking Status Breakdown</h4>
+          <canvas id="statusChart" height="220"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Popular Routes</h4>
+          <canvas id="routeChart" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAdmin();
+  renderNav();
+
+  async function loadDashboard() {
+    document.getElementById('spinner').style.display = 'block';
+    document.getElementById('dashboard-content').classList.add('hidden');
+    try {
+      const data = await get('/admin/analytics');
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('dashboard-content').classList.remove('hidden');
+      document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+      renderStats(data);
+      renderCharts(data);
+    } catch(e) {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('dashboard-content').innerHTML = `<div class="alert alert-error">Failed to load analytics: ${e.message}</div>`;
+      document.getElementById('dashboard-content').classList.remove('hidden');
+    }
+  }
+
+  function renderStats(d) {
+    const stats = [
+      { icon:'🎫', label:'Total Bookings',    value: d.totalBookings,                         color:'#1d3d94', bg:'rgba(29,61,148,.08)'  },
+      { icon:'✅', label:'Confirmed',          value: d.confirmedBookings,                     color:'#16a34a', bg:'rgba(22,163,74,.08)'  },
+      { icon:'❌', label:'Cancelled',          value: d.cancelledBookings,                     color:'#dc2626', bg:'rgba(220,38,38,.08)'  },
+      { icon:'⏳', label:'Pending',            value: d.pendingBookings,                       color:'#d97706', bg:'rgba(217,119,6,.08)'  },
+      { icon:'💰', label:'Total Revenue',      value: formatMoney(d.totalRevenue),             color:'#16a34a', bg:'rgba(22,163,74,.08)',  isStr:true },
+      { icon:'📅', label:'Revenue This Month', value: formatMoney(d.revenueThisMonth),         color:'#1d3d94', bg:'rgba(29,61,148,.08)',  isStr:true },
+      { icon:'✈', label:'Total Flights',       value: d.totalFlights,                          color:'#a88430', bg:'rgba(201,168,76,.1)'  },
+      { icon:'👥', label:'Registered Users',   value: d.totalUsers,                            color:'#d97706', bg:'rgba(217,119,6,.08)'  },
+    ];
+    document.getElementById('stats-grid').innerHTML = stats.map(s => `
+      <div class="stat-card" style="border-left:3px solid ${s.color}">
+        <div class="stat-icon" style="background:${s.bg};color:${s.color}">${s.icon}</div>
+        <div class="stat-value" style="color:${s.color}">${s.value}</div>
+        <div class="stat-label">${s.label}</div>
+      </div>`).join('');
+  }
+
+  function renderCharts(data) {
+    const months = data.monthlyStats.map(m => m.month);
+    const revs   = data.monthlyStats.map(m => m.revenue);
+    const books  = data.monthlyStats.map(m => m.bookings);
+
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+
+    new Chart(document.getElementById('revenueChart'), {
+      type: 'bar',
+      data: { labels: months, datasets: [{ label:'Revenue (₹)', data: revs,
+        backgroundColor: 'rgba(21,57,110,.65)', borderColor:'#152d6e',
+        borderWidth:2, borderRadius:7 }]},
+      options: { responsive:true, plugins:{ legend:{ display:false }},
+        scales:{ y:{ beginAtZero:true, ticks:{ callback: v => '₹'+v.toLocaleString('en-IN') }, grid:{ color:'rgba(0,0,0,.04)' }},
+                 x:{ grid:{ display:false }}}}
+    });
+
+    new Chart(document.getElementById('bookingChart'), {
+      type: 'line',
+      data: { labels: months, datasets: [{ label:'Bookings', data: books,
+        borderColor:'#c9a84c', backgroundColor:'rgba(201,168,76,.1)',
+        borderWidth:2.5, fill:true, tension:0.4, pointRadius:5,
+        pointBackgroundColor:'#c9a84c' }]},
+      options: { responsive:true, plugins:{ legend:{ display:false }},
+        scales:{ y:{ beginAtZero:true, grid:{ color:'rgba(0,0,0,.04)' }},
+                 x:{ grid:{ display:false }}}}
+    });
+
+    new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: { labels:['Confirmed','Pending','Cancelled'],
+        datasets:[{ data:[data.confirmedBookings, data.pendingBookings, data.cancelledBookings],
+          backgroundColor:['#16a34a','#d97706','#dc2626'], borderWidth:0, hoverOffset:6 }]},
+      options: { responsive:true, cutout:'65%', plugins:{ legend:{ position:'bottom', labels:{ padding:16, font:{ size:12 }}}}}
+    });
+
+    const routes = data.popularRoutes.slice(0,6);
+    new Chart(document.getElementById('routeChart'), {
+      type: 'bar',
+      data: { labels: routes.map(r => `${r.from}→${r.to}`),
+        datasets:[{ label:'Bookings', data: routes.map(r => r.count),
+          backgroundColor:'rgba(168,132,48,.7)', borderColor:'#a88430',
+          borderWidth:2, borderRadius:6 }]},
+      options: { responsive:true, indexAxis:'y',
+        plugins:{ legend:{ display:false }},
+        scales:{ x:{ beginAtZero:true, grid:{ color:'rgba(0,0,0,.04)' }},
+                 y:{ grid:{ display:false }}}}
+    });
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

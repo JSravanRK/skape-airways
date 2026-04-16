@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Airports — Admin</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+<div class="admin-layout">
+  <aside class="admin-sidebar" style="position:relative">
+    <div style="padding:1.5rem 1.5rem 1rem;border-bottom:1px solid rgba(201,168,76,.1);margin-bottom:.5rem">
+      <div style="font-size:.58rem;font-weight:700;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.18em">Control Center</div>
+    </div>
+    <a href="/pages/admin/dashboard.html" class="sidebar-link ">📊 &nbsp;Dashboard</a>
+    <a href="/pages/admin/flights.html"   class="sidebar-link ">✈ &nbsp;Flights</a>
+    <a href="/pages/admin/bookings.html"  class="sidebar-link ">🎫 &nbsp;Bookings</a>
+    <a href="/pages/admin/users.html"     class="sidebar-link ">👥 &nbsp;Users</a>
+    <a href="/pages/admin/airports.html"  class="sidebar-link active">🏢 &nbsp;Airports</a>
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem;border-top:1px solid rgba(201,168,76,.1)">
+      <button onclick="Auth.logout()" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);color:rgba(255,130,130,.75);cursor:pointer;font-size:.82rem;padding:.5rem .9rem;border-radius:7px;font-family:'Outfit',sans-serif;width:100%">🚪 Sign Out</button>
+    </div>
+  </aside>
+  <main class="admin-content">
+    <div class="flex-between mb-2">
+      <h1 class="page-title">Airports</h1>
+      <button class="btn btn-gold" onclick="document.getElementById('add-form').classList.toggle('hidden')">+ Add Airport</button>
+    </div>
+    <div id="alert-box"></div>
+    <!-- Add form -->
+    <div class="card mb-2 hidden" id="add-form">
+      <h3 style="margin-bottom:1rem">Add New Airport</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:1rem;align-items:end">
+        <div class="form-group"><label>IATA Code (3 letters)</label><input type="text" id="a-code" placeholder="DEL" maxlength="3" style="text-transform:uppercase"/></div>
+        <div class="form-group"><label>Airport Name</label><input type="text" id="a-name" placeholder="Indira Gandhi International"/></div>
+        <div class="form-group"><label>City</label><input type="text" id="a-city" placeholder="New Delhi"/></div>
+        <div class="form-group"><label>Country</label><input type="text" id="a-country" placeholder="India" value="India"/></div>
+        <button class="btn btn-success" onclick="addAirport()">Add</button>
+      </div>
+    </div>
+    <div id="spinner" class="spinner"></div>
+    <div class="card hidden" id="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Code</th><th>Name</th><th>City</th><th>Country</th><th>Actions</th></tr></thead>
+          <tbody id="airports-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  requireAdmin();
+  renderNav();
+  async function loadAirports() {
+    try {
+      const airports = await get('/airports');
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('table-card').classList.remove('hidden');
+      document.getElementById('airports-tbody').innerHTML = airports.map(a => `
+        <tr>
+          <td><strong style="font-family:monospace;font-size:1rem">${a.code}</strong></td>
+          <td>${a.name}</td><td>${a.city}</td><td>${a.country}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="deleteAirport(${a.id},'${a.code}')">Delete</button></td>
+        </tr>`).join('');
+    } catch(e) {
+      showAlert('alert-box', e.message, 'error');
+      document.getElementById('spinner').style.display = 'none';
+    }
+  }
+  async function addAirport() {
+    const payload = {
+      code:    document.getElementById('a-code').value.trim().toUpperCase(),
+      name:    document.getElementById('a-name').value.trim(),
+      city:    document.getElementById('a-city').value.trim(),
+      country: document.getElementById('a-country').value.trim()
+    };
+    if (!payload.code || !payload.name || !payload.city) {
+      showAlert('alert-box', 'Fill all fields.', 'error'); return;
+    }
+    try {
+      await post('/airports', payload);
+      showAlert('alert-box', 'Airport added!', 'success');
+      ['a-code','a-name','a-city'].forEach(id => document.getElementById(id).value = '');
+      loadAirports();
+    } catch(e) { showAlert('alert-box', e.message, 'error'); }
+  }
+  async function deleteAirport(id, code) {
+    if (!confirm(`Delete airport ${code}?`)) return;
+    try {
+      await del(`/airports/${id}`);
+      showAlert('alert-box', 'Airport deleted.', 'success');
+      loadAirports();
+    } catch(e) { showAlert('alert-box', e.message, 'error'); }
+  }
+  loadAirports();
+</script>
+
+</body>
+</html>

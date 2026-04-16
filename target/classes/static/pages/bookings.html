@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Bookings — Skape Airways</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-hero-bar">
+  <div class="container flex-between" style="flex-wrap:wrap;gap:1rem">
+    <div>
+      <h1>My Bookings</h1>
+      <p>All your upcoming and past flights in one place</p>
+    </div>
+    <a href="/pages/search.html" class="btn btn-gold">+ Book New Flight</a>
+  </div>
+</div>
+
+<div class="container section-sm" style="padding-top:2rem;padding-bottom:3rem">
+  <div id="alert-box"></div>
+  <div id="spinner" class="spinner"></div>
+  <div id="bookings-container" class="hidden"></div>
+</div>
+
+<!-- Cancel Modal -->
+<div class="modal-overlay hidden" id="cancel-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Cancel Booking</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="alert alert-error" style="margin-bottom:1rem">
+      ⚠️ Are you sure you want to cancel this booking?
+    </div>
+    <p class="text-muted" style="font-size:.87rem;line-height:1.65;margin-bottom:1.5rem">
+      This action cannot be undone. Any applicable refund will be processed within 5–7 business days to your original payment method.
+    </p>
+    <div style="display:flex;gap:1rem">
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Keep Booking</button>
+      <button class="btn btn-danger btn-full" id="confirm-cancel-btn">Yes, Cancel</button>
+    </div>
+  </div>
+</div>
+
+<footer style="background:var(--deep);border-top:1px solid rgba(201,168,76,.1)">
+  <div class="footer-inner"><div class="footer-bottom"><span>© 2026 <span class="footer-gold">Skape Airways</span></span><span>Premium Travel · Trusted Journeys</span></div></div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAuth();
+  renderNav('bookings');
+  let cancelBookingId = null;
+
+  async function loadBookings() {
+    try {
+      const bookings = await get('/bookings/my');
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('bookings-container').classList.remove('hidden');
+      renderBookings(bookings);
+    } catch(e) {
+      document.getElementById('spinner').style.display = 'none';
+      showAlert('alert-box','Failed to load bookings: ' + e.message,'error');
+    }
+  }
+
+  function renderBookings(bookings) {
+    const container = document.getElementById('bookings-container');
+    if (!bookings.length) {
+      container.innerHTML = `
+        <div class="card text-center" style="padding:4rem;max-width:500px;margin:0 auto">
+          <div style="font-size:3rem;margin-bottom:1rem">🎫</div>
+          <h3 style="font-size:1.6rem;margin-bottom:.5rem">No Bookings Yet</h3>
+          <p class="text-muted" style="font-size:.92rem;margin-bottom:1.5rem">Your future adventures will appear here once you book your first flight.</p>
+          <a href="/pages/search.html" class="btn btn-gold">Search Flights →</a>
+        </div>`;
+      return;
+    }
+
+    // Group upcoming vs past
+    const now = new Date();
+    const upcoming = bookings.filter(b => new Date(b.departureTime) >= now && b.status !== 'CANCELLED');
+    const past     = bookings.filter(b => new Date(b.departureTime) < now  || b.status === 'CANCELLED');
+
+    let html = '';
+    if (upcoming.length) {
+      html += `<div class="section-label" style="margin-bottom:1rem">Upcoming Flights</div>`;
+      html += upcoming.map(b => bookingCard(b)).join('');
+    }
+    if (past.length) {
+      html += `<div class="section-label" style="margin:2rem 0 1rem">Past &amp; Cancelled</div>`;
+      html += past.map(b => bookingCard(b)).join('');
+    }
+    container.innerHTML = html;
+  }
+
+  function bookingCard(b) {
+    const isPast      = new Date(b.departureTime) < new Date() || b.status === 'CANCELLED';
+    const borderColor = b.status === 'CANCELLED' ? 'var(--danger)' : b.status === 'COMPLETED' ? 'var(--success)' : 'var(--gold)';
+    return `
+      <div class="ticket" style="margin-bottom:1.5rem;opacity:${isPast?'.75':'1'}">
+        <div class="ticket-header" style="padding:1.25rem 1.75rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem">
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <div style="font-size:1.5rem">✈</div>
+              <div>
+                <div style="font-weight:700;font-size:1rem;letter-spacing:.02em">${b.flightNumber}</div>
+                <div style="font-size:.82rem;opacity:.65;margin-top:.1rem">${b.fromCity} → ${b.toCity}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.9rem;flex-wrap:wrap">
+              ${statusBadge(b.status)}
+              <span style="font-size:.75rem;opacity:.6;font-family:monospace;letter-spacing:.06em">REF: ${b.bookingReference}</span>
+            </div>
+          </div>
+        </div>
+        <div class="ticket-body">
+          <div class="ticket-row">
+            <div class="ticket-field"><label>Departure</label><span>${formatDateTime(b.departureTime)}</span></div>
+            <div class="ticket-field"><label>Arrival</label><span>${formatDateTime(b.arrivalTime)}</span></div>
+            <div class="ticket-field"><label>Airline</label><span>${b.airlineName || 'Skape Airways'}</span></div>
+          </div>
+          <div class="ticket-row">
+            <div class="ticket-field"><label>Passenger</label><span>${b.passengerName || 'N/A'}</span></div>
+            <div class="ticket-field"><label>Seat</label><span>${b.seatNumber} · <span style="color:var(--gold-d)">${classLabel(b.seatClass)}</span></span></div>
+            <div class="ticket-field"><label>Amount Paid</label><span style="color:var(--success);font-size:1.05rem;font-family:'Cormorant Garamond',serif">${formatMoney(b.totalAmount)}</span></div>
+          </div>
+          <hr class="ticket-divider"/>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem">
+            <span style="font-size:.78rem;color:var(--muted)">Booked ${formatDateTime(b.createdAt)}</span>
+            <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+              ${b.status !== 'CANCELLED' && b.status !== 'COMPLETED' ? `
+                <button class="btn btn-ghost btn-sm" onclick="openCancelModal(${b.id})">Cancel</button>` : ''}
+              <button class="btn btn-outline btn-sm" onclick="window.location.href='/pages/confirmation.html?bookingId=${b.id}'">View Ticket</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function openCancelModal(id) {
+    cancelBookingId = id;
+    document.getElementById('cancel-modal').classList.remove('hidden');
+    document.getElementById('confirm-cancel-btn').onclick = confirmCancel;
+  }
+  function closeModal() {
+    document.getElementById('cancel-modal').classList.add('hidden');
+    cancelBookingId = null;
+  }
+  async function confirmCancel() {
+    const btn = document.getElementById('confirm-cancel-btn');
+    setLoading(btn, true);
+    try {
+      await del(`/bookings/${cancelBookingId}/cancel`);
+      closeModal();
+      showAlert('alert-box','Booking cancelled successfully. Refund will be processed shortly.','success');
+      loadBookings();
+    } catch(e) {
+      showAlert('alert-box', e.message,'error');
+      closeModal();
+    } finally { setLoading(btn, false); }
+  }
+
+  loadBookings();
+</script>
+</body>
+</html>

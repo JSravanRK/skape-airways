@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SkyMiles — Skape Airways</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <style>
+    .tier-card{border-radius:var(--radius);padding:1.5rem;border:1.5px solid;position:relative;overflow:hidden;transition:transform .25s}
+    .tier-card:hover{transform:translateY(-3px)}
+    .tier-card.current{box-shadow:0 8px 30px rgba(201,168,76,.25)}
+    .miles-bar-bg{background:var(--cream-d);border-radius:10px;height:10px;overflow:hidden;margin:.6rem 0}
+    .miles-bar-fill{height:100%;border-radius:10px;transition:width 1s ease}
+    .perk-item{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 0;border-bottom:1px solid var(--cream-d)}
+    .perk-item:last-child{border-bottom:none}
+    .perk-icon{font-size:1.1rem;flex-shrink:0;margin-top:.05rem}
+    .history-row{display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-bottom:1px solid var(--cream-d);font-size:.88rem}
+    .history-row:last-child{border-bottom:none}
+    .voucher-card{background:linear-gradient(135deg,var(--navy) 0%,#1a3a8f 100%);border-radius:12px;padding:1.1rem 1.4rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+    .voucher-code{font-family:'Courier New',monospace;font-size:1.1rem;font-weight:700;color:var(--gold-l);letter-spacing:.08em}
+    .copy-btn{background:var(--gold);color:var(--deep);border:none;border-radius:8px;padding:.5rem 1rem;font-size:.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:opacity .2s;white-space:nowrap}
+    .copy-btn:hover{opacity:.85}
+    .copy-btn.copied{background:#22c55e;color:#fff}
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<div style="background:linear-gradient(135deg,var(--navy),var(--primary-l));padding:3rem 0;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;background-image:url('https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=1200&q=80');background-size:cover;background-position:center;opacity:.1"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.5rem">
+      <div>
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem">Your Loyalty Programme</div>
+        <h1 style="font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:300;color:var(--white)">SkyMiles <em style="color:var(--gold-l)">Dashboard</em></h1>
+        <p style="color:rgba(255,255,255,.5);font-size:.9rem;margin-top:.4rem" id="miles-member-name">Loading your profile...</p>
+      </div>
+      <div style="background:rgba(255,255,255,.07);border:1px solid rgba(201,168,76,.22);border-radius:14px;padding:1.5rem 2rem;text-align:center">
+        <div style="font-size:.68rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem">Total Balance</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:600;color:var(--gold-l)" id="miles-total">0</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:.2rem">SkyMiles</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container section-sm" style="padding-top:2rem;padding-bottom:3rem">
+  <div class="section-label" style="margin-bottom:1rem">Your Tier</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2.5rem" id="tier-grid"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start">
+    <!-- LEFT -->
+    <div>
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="flex-between" style="margin-bottom:1rem">
+          <div class="section-label" style="margin-bottom:0">Your Perks</div>
+          <span id="tier-badge" class="badge badge-gold">Member</span>
+        </div>
+        <div id="perks-list"></div>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,var(--navy),var(--primary-l));border:none;color:var(--white)">
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem">Earn More Miles</div>
+        <h3 style="font-size:1.2rem;font-weight:400;margin-bottom:.6rem">Book a flight,<br><em style="color:var(--gold-l)">earn instantly</em></h3>
+        <p style="font-size:.83rem;color:rgba(255,255,255,.5);line-height:1.65;margin-bottom:1.1rem">You earn <strong style="color:var(--gold-l)">1 SkyMile for every ₹10</strong> spent on flights.</p>
+        <a href="/pages/search.html" class="btn btn-gold btn-sm">Search Flights →</a>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <!-- Redeem -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="section-label" style="margin-bottom:1rem">Redeem Miles</div>
+        <div style="display:grid;gap:.75rem">
+          <div style="background:var(--cream);border-radius:10px;padding:1rem;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:.85rem;font-weight:600;color:var(--text)">Flight Discount</div>
+              <div style="font-size:.78rem;color:var(--muted);margin-top:.2rem">500 miles = ₹50 off</div>
+            </div>
+            <button id="redeem-flight-btn" class="btn btn-outline btn-sm" onclick="redeemMiles('FLIGHT_DISCOUNT')">Redeem</button>
+          </div>
+          <div style="background:var(--cream);border-radius:10px;padding:1rem;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:.85rem;font-weight:600;color:var(--text)">Seat Upgrade</div>
+              <div style="font-size:.78rem;color:var(--muted);margin-top:.2rem">2,000 miles = Economy → Business</div>
+            </div>
+            <button id="redeem-upgrade-btn" class="btn btn-outline btn-sm" onclick="redeemMiles('SEAT_UPGRADE')">Redeem</button>
+          </div>
+        </div>
+        <div id="redeem-alert" style="margin-top:.75rem"></div>
+      </div>
+
+      <!-- Your Vouchers -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="section-label" style="margin-bottom:.85rem">🎟 Your Vouchers</div>
+        <div id="vouchers-list">
+          <div style="text-align:center;padding:1.2rem;color:var(--muted);font-size:.87rem">Loading vouchers...</div>
+        </div>
+        <p id="voucher-hint" style="font-size:.78rem;color:var(--muted);margin-top:.75rem;display:none">
+          Apply these codes at <strong>Step 3 (Payment)</strong> when booking a flight.
+        </p>
+      </div>
+
+      <!-- History -->
+      <div class="card">
+        <div class="section-label" style="margin-bottom:.75rem">Miles History</div>
+        <div id="miles-history"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer style="background:var(--deep);border-top:1px solid rgba(201,168,76,.1)">
+  <div class="footer-inner"><div class="footer-bottom"><span>© 2026 <span class="footer-gold">Skape Airways</span></span></div></div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAuth();
+  renderNav('miles');
+
+  const TIERS = [
+    { name:'Member',   min:0,      max:4999,     color:'#7b8294', bg:'rgba(123,130,148,.08)', border:'rgba(123,130,148,.25)', perks:['E-ticket on every booking','Seat selection','Basic priority boarding'] },
+    { name:'Silver',   min:5000,   max:14999,    color:'#94a3b8', bg:'rgba(148,163,184,.08)', border:'rgba(148,163,184,.35)', perks:['All Member perks','Extra baggage 5kg','Priority check-in','10% discount on upgrades'] },
+    { name:'Gold',     min:15000,  max:29999,    color:'#c9a84c', bg:'rgba(201,168,76,.1)',   border:'rgba(201,168,76,.4)',   perks:['All Silver perks','Lounge access','20% discount on upgrades','Free meal on every flight'] },
+    { name:'Platinum', min:30000,  max:Infinity, color:'#152d6e', bg:'rgba(21,45,110,.08)',   border:'rgba(21,45,110,.4)',    perks:['All Gold perks','Dedicated concierge','Free upgrades (subject to availability)','Companion ticket annually'] },
+  ];
+
+  function getTier(m)     { return TIERS.find(t => m >= t.min && m <= t.max) || TIERS[0]; }
+  function getNextTier(m) { const i = TIERS.findIndex(t => m >= t.min && m <= t.max); return TIERS[i+1]||null; }
+
+  async function initMilesPage() {
+    const name = Auth.name() || 'Valued Member';
+    let miles = 0, transactions = [];
+
+    try {
+      const data = await silentGet('/miles/balance');
+      miles = data.balance || 0;
+      transactions = data.transactions || [];
+      // Keep localStorage in sync for navbar
+      localStorage.setItem('skymiles_balance', miles);
+    } catch(e) {
+      miles = SkyMiles.get(); // fallback
+    }
+
+    const tier = getTier(miles);
+    const next = getNextTier(miles);
+
+    document.getElementById('miles-total').textContent = miles.toLocaleString('en-IN');
+    document.getElementById('miles-member-name').textContent = `Welcome, ${name}`;
+    const badge = document.getElementById('tier-badge');
+    badge.textContent = tier.name;
+    badge.style.background = tier.bg;
+    badge.style.color = tier.color;
+    badge.style.border = `1px solid ${tier.border}`;
+
+    // Tier grid
+    document.getElementById('tier-grid').innerHTML = TIERS.map(t => {
+      const isCurrent = t.name === tier.name, isReached = miles >= t.min;
+      return `<div class="tier-card ${isCurrent?'current':''}" style="background:${isCurrent?t.bg:'var(--white)'};border-color:${isCurrent?t.border:'var(--cream-d)'}">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${isReached?t.color:'var(--muted)'}">
+          ${isCurrent?'● Current Tier':isReached?'✓ Reached':'🔒 Locked'}
+        </div>
+        <div style="font-size:1.2rem;font-weight:700;color:${isReached?t.color:'var(--muted)'};margin:.4rem 0">${t.name}</div>
+        <div style="font-size:.72rem;color:var(--muted)">${t.min>=1000?(t.min/1000).toFixed(0)+'k':t.min}${t.max===Infinity?'+':' – '+(t.max/1000).toFixed(0)+'k'} miles</div>
+      </div>`;
+    }).join('');
+
+    if (next) {
+      const pct = Math.round(((miles - tier.min)/(next.min - tier.min))*100);
+      document.getElementById('tier-grid').insertAdjacentHTML('afterend', `
+        <div style="background:var(--white);border-radius:var(--radius);padding:1.25rem;border:1px solid var(--cream-d);margin-bottom:2rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <span style="font-size:.85rem;font-weight:600;color:var(--text)">Progress to <span style="color:${next.color}">${next.name}</span></span>
+            <span style="font-size:.78rem;color:var(--muted)">${(next.min-miles).toLocaleString('en-IN')} miles to go</span>
+          </div>
+          <div class="miles-bar-bg"><div class="miles-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${tier.color},${next.color})"></div></div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:.25rem">${miles.toLocaleString('en-IN')} / ${next.min.toLocaleString('en-IN')} miles (${pct}%)</div>
+        </div>`);
+    }
+
+    document.getElementById('perks-list').innerHTML = tier.perks.map(p => `
+      <div class="perk-item"><span class="perk-icon">✦</span>
+        <span style="font-size:.87rem;color:var(--text-soft)">${p}</span></div>`).join('');
+
+    document.getElementById('redeem-flight-btn').disabled  = miles < 500;
+    document.getElementById('redeem-upgrade-btn').disabled = miles < 2000;
+
+    // History
+    const histEl = document.getElementById('miles-history');
+    if (!transactions.length) {
+      histEl.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.87rem">No miles history yet.<br>Book your first flight to start earning!</div>`;
+    } else {
+      histEl.innerHTML = transactions.slice(0,8).map(h => `
+        <div class="history-row">
+          <div>
+            <div style="font-weight:600;font-size:.87rem">${h.description}</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:.1rem">
+              ${new Date(h.createdAt).toLocaleDateString('en-IN')}
+              ${h.amount > 0 ? ` · ₹${(h.amount * 10).toLocaleString('en-IN')} fare` : ''}
+            </div>
+          </div>
+          <div style="font-weight:700;color:${h.amount>0?'var(--success)':'var(--danger)'}">
+            ${h.amount>0?'+':''}${h.amount.toLocaleString('en-IN')} mi
+          </div>
+        </div>`).join('');
+    }
+
+    await loadVouchers();
+  }
+
+  async function loadVouchers() {
+    const el = document.getElementById('vouchers-list');
+    try {
+      const vouchers = await silentGet('/miles/vouchers');
+      if (!vouchers || !vouchers.length) {
+        el.innerHTML = `<div style="text-align:center;padding:1.2rem;color:var(--muted);font-size:.87rem">No active vouchers yet.<br>Redeem miles above to generate a voucher code!</div>`;
+        document.getElementById('voucher-hint').style.display = 'none';
+        return;
+      }
+      document.getElementById('voucher-hint').style.display = '';
+      el.innerHTML = vouchers.map(v => {
+        const label = v.type === 'FLIGHT_DISCOUNT' ? 'Flight Discount (₹50 off)' : 'Seat Upgrade (Economy→Business)';
+        const date  = new Date(v.createdAt).toLocaleDateString('en-IN');
+        return `<div class="voucher-card">
+          <div>
+            <div class="voucher-code">${v.code}</div>
+            <div style="font-size:.78rem;color:rgba(255,255,255,.55);margin-top:.25rem">${label}</div>
+            <div style="font-size:.72rem;color:rgba(255,255,255,.35);margin-top:.15rem">Earned ${date}</div>
+          </div>
+          <button class="copy-btn" id="copy-${v.code}" onclick="copyCode('${v.code}')">📋 Copy Code</button>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      el.innerHTML = `<div style="color:var(--danger);font-size:.85rem;padding:.5rem">Failed to load vouchers.</div>`;
+    }
+  }
+
+  function copyCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.getElementById('copy-' + code);
+      btn.innerHTML = '✅ Copied!'; btn.classList.add('copied');
+      setTimeout(() => { btn.innerHTML = '📋 Copy Code'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  async function redeemMiles(type) {
+    const costs = { FLIGHT_DISCOUNT:500, SEAT_UPGRADE:2000 };
+    const labels = { FLIGHT_DISCOUNT:'Flight Discount (₹50 off)', SEAT_UPGRADE:'Seat Upgrade (Economy→Business)' };
+    try {
+      const voucher = await post('/miles/redeem', { type });
+      showAlert('redeem-alert', `✅ Redeemed ${costs[type].toLocaleString('en-IN')} miles for ${labels[type]}! Your code: <strong>${voucher.code}</strong>`, 'success');
+      await initMilesPage();
+    } catch(e) {
+      showAlert('redeem-alert', e.message, 'error');
+    }
+  }
+
+  initMilesPage();
+</script>
+</body>
+</html>

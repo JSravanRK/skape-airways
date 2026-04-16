@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Flights — Admin</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<div class="admin-layout">
+  <aside class="admin-sidebar" style="position:relative">
+    <div style="padding:1.5rem 1.5rem 1rem;border-bottom:1px solid rgba(201,168,76,.1);margin-bottom:.5rem">
+      <div style="font-size:.58rem;font-weight:700;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.18em">Control Center</div>
+    </div>
+    <a href="/pages/admin/dashboard.html" class="sidebar-link ">📊 &nbsp;Dashboard</a>
+    <a href="/pages/admin/flights.html"   class="sidebar-link active">✈ &nbsp;Flights</a>
+    <a href="/pages/admin/bookings.html"  class="sidebar-link ">🎫 &nbsp;Bookings</a>
+    <a href="/pages/admin/users.html"     class="sidebar-link ">👥 &nbsp;Users</a>
+    <a href="/pages/admin/airports.html"  class="sidebar-link ">🏢 &nbsp;Airports</a>
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem;border-top:1px solid rgba(201,168,76,.1)">
+      <button onclick="Auth.logout()" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);color:rgba(255,130,130,.75);cursor:pointer;font-size:.82rem;padding:.5rem .9rem;border-radius:7px;font-family:'Outfit',sans-serif;width:100%">🚪 Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="admin-content">
+    <div class="flex-between mb-2">
+      <h1 class="page-title">Manage Flights</h1>
+      <button class="btn btn-gold" onclick="openAddModal()">+ Add Flight</button>
+    </div>
+
+    <div id="alert-box"></div>
+    <div id="spinner" class="spinner"></div>
+
+    <div class="card hidden" id="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Flight #</th><th>Route</th><th>Departure</th><th>Arrival</th>
+              <th>Available</th><th>Economy</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="flights-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add/Edit Flight Modal -->
+<div class="modal-overlay hidden" id="flight-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h3 id="modal-title">Add New Flight</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-alert"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="form-group">
+        <label>Flight Number *</label>
+        <input type="text" id="f-number" placeholder="SW101"/>
+      </div>
+      <div class="form-group">
+        <label>Airline Name *</label>
+        <input type="text" id="f-airline" placeholder="Skape Airways" value="Skape Airways"/>
+      </div>
+      <div class="form-group">
+        <label>From Airport *</label>
+        <select id="f-from"></select>
+      </div>
+      <div class="form-group">
+        <label>To Airport *</label>
+        <select id="f-to"></select>
+      </div>
+      <div class="form-group">
+        <label>Departure Date & Time *</label>
+        <input type="datetime-local" id="f-dep"/>
+      </div>
+      <div class="form-group">
+        <label>Arrival Date & Time *</label>
+        <input type="datetime-local" id="f-arr"/>
+      </div>
+      <div class="form-group">
+        <label>Total Seats *</label>
+        <input type="number" id="f-seats" value="120" min="10" max="500"/>
+      </div>
+      <div class="form-group">
+        <label>Aircraft Type</label>
+        <select id="f-aircraft">
+          <option>Boeing 737</option>
+          <option>Boeing 777</option>
+          <option>Airbus A320</option>
+          <option>Airbus A380</option>
+          <option>ATR 72</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Economy Price (₹) *</label>
+        <input type="number" id="f-eco" placeholder="3500" min="500"/>
+      </div>
+      <div class="form-group">
+        <label>Business Price (₹) *</label>
+        <input type="number" id="f-biz" placeholder="9000" min="1000"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>First Class Price (₹) *</label>
+        <input type="number" id="f-first" placeholder="18000" min="2000"/>
+      </div>
+    </div>
+    <div style="display:flex;gap:1rem;margin-top:1.5rem">
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" style="flex:1" id="save-btn" onclick="saveFlight()">Save Flight</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAdmin();
+  renderNav();
+
+  let airports = [], editId = null;
+
+  async function init() {
+    airports = await get('/airports');
+    airports.forEach(a => {
+      const opt = `<option value="${a.id}">${a.code} — ${a.city}</option>`;
+      document.getElementById('f-from').innerHTML += opt;
+      document.getElementById('f-to').innerHTML   += opt;
+    });
+    loadFlights();
+  }
+
+  async function loadFlights() {
+    try {
+      const flights = await get('/flights');
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('table-card').classList.remove('hidden');
+
+      document.getElementById('flights-tbody').innerHTML = flights.map(f => `
+        <tr>
+          <td><strong>${f.flightNumber}</strong><br/><span class="text-muted" style="font-size:.78rem">${f.airlineName||''}</span></td>
+          <td>${f.fromCode} → ${f.toCode}<br/><span class="text-muted" style="font-size:.78rem">${f.fromCity} → ${f.toCity}</span></td>
+          <td>${formatDateTime(f.departureTime)}</td>
+          <td>${formatDateTime(f.arrivalTime)}</td>
+          <td>${f.availableSeats} / ${f.totalSeats}</td>
+          <td>${formatMoney(f.economyPrice)}</td>
+          <td>
+            <select onchange="changeStatus(${f.id}, this.value)" style="padding:.3rem .5rem;border-radius:6px;border:1px solid var(--border);font-size:.82rem">
+              ${['SCHEDULED','BOARDING','DEPARTED','ARRIVED','CANCELLED','DELAYED'].map(s =>
+                `<option value="${s}" ${s===f.status?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="openEditModal(${JSON.stringify(f).replace(/"/g,'&quot;')})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteFlight(${f.id},'${f.flightNumber}')">Delete</button>
+          </td>
+        </tr>`).join('');
+    } catch(e) {
+      showAlert('alert-box', e.message, 'error');
+      document.getElementById('spinner').style.display = 'none';
+    }
+  }
+
+  async function changeStatus(id, status) {
+    try {
+      await patch(`/flights/${id}/status?status=${status}`, {});
+      showAlert('alert-box', 'Status updated.', 'success');
+    } catch(e) {
+      showAlert('alert-box', e.message, 'error');
+    }
+  }
+
+  function openAddModal() {
+    editId = null;
+    document.getElementById('modal-title').textContent = 'Add New Flight';
+    document.getElementById('save-btn').textContent = 'Add Flight';
+    ['f-number','f-airline','f-dep','f-arr','f-eco','f-biz','f-first'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-seats').value = 120;
+    document.getElementById('f-airline').value = 'Skape Airways';
+    document.getElementById('flight-modal').classList.remove('hidden');
+  }
+
+  function openEditModal(f) {
+    editId = f.id;
+    document.getElementById('modal-title').textContent = 'Edit Flight';
+    document.getElementById('save-btn').textContent = 'Update Flight';
+    document.getElementById('f-number').value  = f.flightNumber;
+    document.getElementById('f-airline').value = f.airlineName || '';
+    document.getElementById('f-dep').value     = f.departureTime?.slice(0,16) || '';
+    document.getElementById('f-arr').value     = f.arrivalTime?.slice(0,16) || '';
+    document.getElementById('f-eco').value     = f.economyPrice;
+    document.getElementById('f-biz').value     = f.businessPrice;
+    document.getElementById('f-first').value   = f.firstClassPrice;
+    document.getElementById('flight-modal').classList.remove('hidden');
+  }
+
+  function closeModal() {
+    document.getElementById('flight-modal').classList.add('hidden');
+    document.getElementById('modal-alert').innerHTML = '';
+    editId = null;
+  }
+
+  async function saveFlight() {
+    const btn = document.getElementById('save-btn');
+    const payload = {
+      flightNumber:   document.getElementById('f-number').value.trim(),
+      fromAirportId:  parseInt(document.getElementById('f-from').value),
+      toAirportId:    parseInt(document.getElementById('f-to').value),
+      departureTime:  document.getElementById('f-dep').value,
+      arrivalTime:    document.getElementById('f-arr').value,
+      totalSeats:     parseInt(document.getElementById('f-seats').value),
+      economyPrice:   parseFloat(document.getElementById('f-eco').value),
+      businessPrice:  parseFloat(document.getElementById('f-biz').value),
+      firstClassPrice:parseFloat(document.getElementById('f-first').value),
+      airlineName:    document.getElementById('f-airline').value,
+      aircraftType:   document.getElementById('f-aircraft').value
+    };
+
+    if (!payload.flightNumber || !payload.departureTime || !payload.economyPrice) {
+      document.getElementById('modal-alert').innerHTML =
+        '<div class="alert alert-error">Please fill all required fields.</div>'; return;
+    }
+
+    setLoading(btn, true);
+    try {
+      if (editId) {
+        await put(`/flights/${editId}`, payload);
+        showAlert('alert-box', 'Flight updated successfully.', 'success');
+      } else {
+        await post('/flights', payload);
+        showAlert('alert-box', 'Flight created successfully.', 'success');
+      }
+      closeModal();
+      loadFlights();
+    } catch(e) {
+      document.getElementById('modal-alert').innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+
+  async function deleteFlight(id, num) {
+    if (!confirm(`Delete flight ${num}?`)) return;
+    try {
+      await del(`/flights/${id}`);
+      showAlert('alert-box', 'Flight deleted.', 'success');
+      loadFlights();
+    } catch(e) {
+      showAlert('alert-box', e.message, 'error');
+    }
+  }
+
+  init();
+</script>
+
+</body>
+</html>

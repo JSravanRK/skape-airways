@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Booking Confirmed — Skape Airways</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <style>
+    @media print {
+      nav, footer, .no-print { display: none !important; }
+      body { background: #fff !important; }
+      .ticket { box-shadow: none !important; border: 1px solid #ccc !important; }
+      .confirm-banner { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<div class="container section">
+  <div id="spinner" class="spinner"></div>
+  <div id="ticket-area" class="hidden">
+
+    <!-- Success Banner -->
+    <div class="confirm-banner" style="text-align:center;margin-bottom:2.5rem;animation:heroFadeUp .6s ease">
+      <div style="display:inline-flex;width:72px;height:72px;background:linear-gradient(135deg,rgba(22,163,74,.12),rgba(22,163,74,.06));border:2px solid rgba(22,163,74,.25);border-radius:50%;align-items:center;justify-content:center;font-size:2rem;margin-bottom:1rem">✓</div>
+      <h1 style="font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:300;color:var(--text);margin-bottom:.5rem">Booking <em style="color:var(--success)">Confirmed!</em></h1>
+      <p class="text-muted" style="font-size:.95rem">Your e-ticket is ready. Check your email for a copy. Have a wonderful flight!</p>
+
+      <!-- SkyMiles Earned (dynamic — updated by JS after booking loads) -->
+      <div id="miles-earned-banner" style="display:inline-flex;align-items:center;gap:.6rem;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:10px;padding:.6rem 1.4rem;margin-top:1rem;font-size:.84rem;color:var(--gold-d)">
+        🌟 <span id="miles-earned-text">Calculating your SkyMiles...</span>
+      </div>
+    </div>
+
+    <!-- THE TICKET -->
+    <div class="ticket" style="max-width:720px;margin:0 auto">
+      <div class="ticket-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+          <div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:600;letter-spacing:.04em">✦ SKAPE AIRWAYS</div>
+            <div style="font-size:.75rem;opacity:.55;margin-top:.2rem;letter-spacing:.06em;text-transform:uppercase">Electronic Boarding Pass</div>
+          </div>
+          <div id="ticket-status"></div>
+        </div>
+
+        <!-- Route Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,.12)">
+          <div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:3rem;font-weight:600;line-height:1" id="t-fromCode"></div>
+            <div style="font-size:.8rem;opacity:.6;margin-top:.2rem" id="t-fromCity"></div>
+          </div>
+          <div style="text-align:center;flex:1;padding:0 1.5rem">
+            <div style="font-size:.75rem;opacity:.55;margin-bottom:.4rem" id="t-duration"></div>
+            <div style="display:flex;align-items:center;gap:.4rem">
+              <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.15),rgba(201,168,76,.6))"></div>
+              <span style="font-size:1.3rem;color:var(--gold-l)">✈</span>
+              <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,.6),rgba(255,255,255,.15))"></div>
+            </div>
+            <div style="font-size:.72rem;opacity:.45;margin-top:.4rem">Non-stop</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:3rem;font-weight:600;line-height:1" id="t-toCode"></div>
+            <div style="font-size:.8rem;opacity:.6;margin-top:.2rem" id="t-toCity"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ticket-body">
+        <div class="ticket-row">
+          <div class="ticket-field"><label>Departure</label><span id="t-dep"></span></div>
+          <div class="ticket-field"><label>Arrival</label><span id="t-arr"></span></div>
+          <div class="ticket-field"><label>Flight No.</label><span id="t-flight"></span></div>
+        </div>
+
+        <div id="t-passengers-section"></div>
+
+        <hr class="ticket-divider"/>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+          <div>
+            <div class="ticket-field">
+              <label>Booking Reference</label>
+              <span id="t-ref" style="font-size:1.3rem;letter-spacing:.12em;font-family:monospace;color:var(--navy)"></span>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.2rem">Total Paid</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;color:var(--success)" id="t-amount"></div>
+          </div>
+        </div>
+
+        <hr class="ticket-divider" style="margin-top:1.25rem"/>
+
+        <!-- Barcode -->
+        <div style="text-align:center;margin:1.25rem 0;padding:1rem;background:var(--cream);border-radius:10px;border:1px dashed var(--cream-d)">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.6rem">Boarding Pass Barcode</div>
+          <div id="ticket-barcode" style="display:flex;justify-content:center;overflow:hidden;border-radius:4px"></div>
+        </div>
+
+        <div class="no-print" style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.25rem">
+          <button class="btn btn-outline" onclick="window.print()">🖨 Print Ticket</button>
+          <a class="btn btn-outline" href="/pages/bookings.html">My Bookings</a>
+          <a class="btn btn-gold" href="/index.html">Book Another Flight →</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer style="background:var(--deep);border-top:1px solid rgba(201,168,76,.1)">
+  <div class="footer-inner"><div class="footer-bottom"><span>© 2026 <span class="footer-gold">Skape Airways</span></span><span>Safe travels! ✈</span></div></div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAuth();
+  renderNav();
+
+  const params    = new URLSearchParams(location.search);
+  const bookingId = params.get('bookingId');
+  const allIdsRaw = params.get('allIds');
+  const allIds    = allIdsRaw ? allIdsRaw.split(',').map(Number) : [parseInt(bookingId)];
+  async function loadTicket() {
+    try {
+      const bookings = await Promise.all(allIds.map(id => get(`/bookings/${id}`)));
+      const first = bookings[0];
+
+      document.getElementById('t-fromCode').textContent = first.fromCode || first.fromCity.substring(0,3).toUpperCase();
+      document.getElementById('t-fromCity').textContent = first.fromCity;
+      document.getElementById('t-toCode').textContent   = first.toCode   || first.toCity.substring(0,3).toUpperCase();
+      document.getElementById('t-toCity').textContent   = first.toCity;
+      document.getElementById('t-dep').textContent      = formatDateTime(first.departureTime);
+      document.getElementById('t-arr').textContent      = formatDateTime(first.arrivalTime);
+      document.getElementById('t-flight').textContent   = first.flightNumber;
+      document.getElementById('t-ref').textContent      = first.bookingReference;
+      document.getElementById('ticket-status').innerHTML= statusBadge(first.status);
+
+      const totalMins = Math.round((new Date(first.arrivalTime) - new Date(first.departureTime)) / 60000);
+      document.getElementById('t-duration').textContent = formatDuration(totalMins);
+
+      const total = bookings.reduce((sum, b) => sum + b.totalAmount, 0);
+      document.getElementById('t-amount').textContent = formatMoney(total);
+
+      // ── SkyMiles — fetch real balance from backend ──
+      try {
+        const milesData = await get('/miles/balance');
+        const newBalance = milesData.balance || 0;
+        // Sync localStorage for navbar
+        localStorage.setItem('skymiles_balance', newBalance);
+        // Find how many miles were earned for this booking from latest transaction
+        const latestTx = (milesData.transactions || []).find(tx => tx.amount > 0);
+        const earnedMiles = latestTx ? latestTx.amount : SkyMiles.fromAmount(total);
+        document.getElementById('miles-earned-text').textContent =
+          `+${earnedMiles.toLocaleString('en-IN')} SkyMiles earned on this booking! Total balance: ${newBalance.toLocaleString('en-IN')} miles`;
+      } catch(_) {
+        // Fallback to local calculation
+        const earnedMiles = SkyMiles.fromAmount(total);
+        document.getElementById('miles-earned-text').textContent =
+          `+${earnedMiles.toLocaleString('en-IN')} SkyMiles earned on this booking!`;
+      }
+
+      // ── Barcode ──
+      const barEl = document.getElementById('ticket-barcode');
+      if (barEl) barEl.innerHTML = generateBarcodeSVG(first.bookingReference);
+
+      // ── Passengers ──
+      const passSection = document.getElementById('t-passengers-section');
+      if (bookings.length === 1) {
+        passSection.innerHTML = `
+          <div class="ticket-row">
+            <div class="ticket-field"><label>Passenger</label><span>${first.passengerName}</span></div>
+            <div class="ticket-field"><label>Seat</label><span>${first.seatNumber}</span></div>
+            <div class="ticket-field"><label>Class</label><span style="color:var(--gold-d)">${classLabel(first.seatClass)}</span></div>
+          </div>`;
+      } else {
+        const rows = bookings.map((b, i) => `
+          <tr>
+            <td style="padding:.75rem 1rem;border-bottom:1px solid rgba(0,0,0,.04)">${i+1}</td>
+            <td style="padding:.75rem 1rem;border-bottom:1px solid rgba(0,0,0,.04);font-weight:600">${b.passengerName}</td>
+            <td style="padding:.75rem 1rem;border-bottom:1px solid rgba(0,0,0,.04)">${b.seatNumber}</td>
+            <td style="padding:.75rem 1rem;border-bottom:1px solid rgba(0,0,0,.04);color:var(--gold-d)">${classLabel(b.seatClass)}</td>
+            <td style="padding:.75rem 1rem;border-bottom:1px solid rgba(0,0,0,.04);color:var(--success);font-weight:700">${formatMoney(b.totalAmount)}</td>
+          </tr>`).join('');
+        passSection.innerHTML = `
+          <div style="margin:.5rem 0 1rem">
+            <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.6rem">Passengers & Seats (${bookings.length})</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>#</th><th>Passenger</th><th>Seat</th><th>Class</th><th>Fare</th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }
+
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('ticket-area').classList.remove('hidden');
+    } catch(e) {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('ticket-area').innerHTML =
+        `<div class="alert alert-error">Failed to load ticket: ${e.message}</div>`;
+      document.getElementById('ticket-area').classList.remove('hidden');
+    }
+  }
+  loadTicket();
+</script>
+</body>
+</html>

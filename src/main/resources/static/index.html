@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Skape Airways — Fly in First Class Comfort</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-badge">✦ &nbsp; Premium Aviation Experience</div>
+    <h1>Fly Beyond<br><em>The Ordinary</em></h1>
+    <p>Discover thousands of routes, compare prices in real time, and book your perfect flight — all in under a minute.</p>
+
+    <div class="hero-stats">
+      <div><div class="hero-stat-value">120+</div><div class="hero-stat-label">Destinations</div></div>
+      <div style="width:1px;background:rgba(201,168,76,.2)"></div>
+      <div><div class="hero-stat-value">98%</div><div class="hero-stat-label">On-Time Rate</div></div>
+      <div style="width:1px;background:rgba(201,168,76,.2)"></div>
+      <div><div class="hero-stat-value">4.9★</div><div class="hero-stat-label">Passenger Rating</div></div>
+    </div>
+
+    <!-- ─── SEARCH BOX ─── -->
+    <div class="search-box">
+      <div class="search-grid" id="search-grid-main">
+        <div class="form-group">
+          <label>🛫 From</label>
+          <select id="fromCode"><option value="">Select Origin</option></select>
+        </div>
+        <div class="form-group">
+          <label>🛬 To</label>
+          <select id="toCode"><option value="">Select Destination</option></select>
+        </div>
+        <div class="form-group">
+          <label>📅 Depart</label>
+          <input type="date" id="travelDate" onchange="loadFareCalendar()"/>
+        </div>
+        <!-- Return date (hidden for one-way) -->
+        <button class="btn btn-gold btn-lg" onclick="searchFlights()" id="search-btn">Search Flights</button>
+      </div>
+      <div id="search-alert" style="margin-top:.75rem"></div>
+
+      <!-- ─── FARE CALENDAR ─── -->
+      <div id="fare-calendar" style="display:none;margin-top:1.25rem;border-top:1px solid var(--cream-d);padding-top:1.1rem">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:.65rem">7-Day Cheapest Fares</div>
+        <div id="fare-calendar-days" style="display:grid;grid-template-columns:repeat(7,1fr);gap:.4rem"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FLIGHT RESULTS -->
+<div class="container section" id="results-section" style="display:none">
+  <div class="flex-between mb-2" style="flex-wrap:wrap;gap:1rem">
+    <div>
+      <div class="section-label">Available Flights</div>
+      <h2 class="page-title" id="results-title"></h2>
+    </div>
+    <span id="results-count" class="text-muted" style="font-size:.9rem"></span>
+  </div>
+  <div id="flight-list"></div>
+</div>
+
+<!-- POPULAR DESTINATIONS -->
+<section style="background:var(--white);padding:4rem 0">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:2.5rem">
+      <div class="section-label" style="justify-content:center">Explore the World</div>
+      <h2 style="font-size:2.4rem;font-weight:300">Popular <em>Destinations</em></h2>
+      <p class="text-muted" style="margin-top:.5rem;max-width:440px;margin-left:auto;margin-right:auto;font-size:.9rem">Hand-picked routes with the best deals, curated by our travel experts.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem">
+      <div class="dest-card" onclick="prefillSearch('DEL')">
+        <img src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=600&q=80" alt="Delhi" loading="lazy"/>
+        <div class="dest-overlay"></div>
+        <div class="dest-info"><div class="dest-city">New Delhi</div><div class="dest-country">Indira Gandhi International</div><div class="dest-price">from ₹3,299</div></div>
+      </div>
+      <div class="dest-card" onclick="prefillSearch('BOM')">
+        <img src="https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=600&q=80" alt="Mumbai" loading="lazy"/>
+        <div class="dest-overlay"></div>
+        <div class="dest-info"><div class="dest-city">Mumbai</div><div class="dest-country">Chhatrapati Shivaji Maharaj</div><div class="dest-price">from ₹2,499</div></div>
+      </div>
+      <div class="dest-card" onclick="prefillSearch('BLR')">
+        <img src="https://images.unsplash.com/photo-1596176530529-78163a4f7af2?w=600&q=80" alt="Bangalore" loading="lazy"/>
+        <div class="dest-overlay"></div>
+        <div class="dest-info"><div class="dest-city">Bengaluru</div><div class="dest-country">Kempegowda International</div><div class="dest-price">from ₹1,899</div></div>
+      </div>
+      <div class="dest-card" onclick="prefillSearch('MAA')">
+        <img src="https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=600&q=80" alt="Chennai" loading="lazy"/>
+        <div class="dest-overlay"></div>
+        <div class="dest-info"><div class="dest-city">Chennai</div><div class="dest-country">Chennai International</div><div class="dest-price">from ₹2,099</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY CHOOSE US -->
+<section class="container section">
+  <div class="text-center" style="margin-bottom:2.5rem">
+    <div class="section-label" style="justify-content:center">Why Skape Airways</div>
+    <h2 style="font-size:2.4rem;font-weight:300">A First-Class <em>Experience</em></h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.5rem">
+    <div class="feature-card"><div class="feature-icon">🔐</div><h3>Bank-Level Security</h3><p>JWT-protected accounts and encrypted Razorpay transactions keep every booking safe.</p></div>
+    <div class="feature-card"><div class="feature-icon">💺</div><h3>Live Seat Selection</h3><p>Choose your perfect seat with real-time availability locking across all cabin classes.</p></div>
+    <div class="feature-card"><div class="feature-icon">📈</div><h3>Smart Dynamic Pricing</h3><p>Our AI pricing engine adjusts fares in real time based on demand and time to departure.</p></div>
+    <div class="feature-card"><div class="feature-icon">💳</div><h3>Instant Payments</h3><p>Pay via Razorpay, UPI, Debit/Credit Card, or Net Banking — confirmation in seconds.</p></div>
+    <div class="feature-card"><div class="feature-icon">📧</div><h3>E-Ticket Delivery</h3><p>Receive your boarding pass and confirmation via email the moment you book.</p></div>
+    <div class="feature-card"><div class="feature-icon">🌟</div><h3>Loyalty SkyMiles</h3><p>Earn SkyMiles on every booking and unlock Silver, Gold, and Platinum tier rewards.</p></div>
+  </div>
+</section>
+
+<!-- PREMIUM BANNER -->
+<section style="background:var(--navy);padding:4rem 0;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;background-image:url('https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=1400&q=80');background-size:cover;background-position:center;opacity:.12"></div>
+  <div class="container" style="position:relative;z-index:1;display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center;flex-wrap:wrap">
+    <div>
+      <div class="section-label" style="color:var(--gold-l)">First Class &amp; Business</div>
+      <h2 style="font-size:2.4rem;font-weight:300;color:var(--white);margin-bottom:.75rem">Travel Like <em style="color:var(--gold-l)">Royalty</em></h2>
+      <p style="color:rgba(255,255,255,.5);max-width:480px;font-size:.93rem;line-height:1.75">Upgrade to Business or First Class and experience lie-flat seats, premium dining, priority boarding, and exclusive lounge access.</p>
+    </div>
+    <div style="text-align:right">
+      <a href="/pages/search.html" class="btn btn-gold btn-lg">Explore Premium Cabins →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:4rem;padding:3.5rem 0 2.5rem;align-items:start">
+
+      <!-- Brand + tagline + quick facts -->
+      <div>
+        <a class="nav-logo" href="/index.html" style="font-size:1.4rem">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+        <p style="font-size:.85rem;line-height:1.8;color:rgba(255,255,255,.38);max-width:340px;margin:.9rem 0 1.6rem">
+          Redefining air travel through technology and luxury.<br>Your journey begins the moment you book.
+        </p>
+        <!-- Trust badges -->
+        <div style="display:flex;gap:1.4rem;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:.45rem;color:rgba(255,255,255,.35);font-size:.78rem">
+            <span style="color:var(--gold);font-size:1rem">🔒</span> Secure Payments
+          </div>
+          <div style="display:flex;align-items:center;gap:.45rem;color:rgba(255,255,255,.35);font-size:.78rem">
+            <span style="color:var(--gold);font-size:1rem">⚡</span> Instant Confirmation
+          </div>
+          <div style="display:flex;align-items:center;gap:.45rem;color:rgba(255,255,255,.35);font-size:.78rem">
+            <span style="color:var(--gold);font-size:1rem">🌟</span> SkyMiles Rewards
+          </div>
+          <div style="display:flex;align-items:center;gap:.45rem;color:rgba(255,255,255,.35);font-size:.78rem">
+            <span style="color:var(--gold);font-size:1rem">✉️</span> E-Ticket on Booking
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick links -->
+      <div>
+        <h4 style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.1rem">Quick Links</h4>
+        <a href="/pages/search.html"   style="display:block;color:rgba(255,255,255,.32);font-size:.84rem;text-decoration:none;margin-bottom:.55rem;transition:color .2s" onmouseover="this.style.color='var(--gold-l)'" onmouseout="this.style.color='rgba(255,255,255,.32)'">✈ Search Flights</a>
+        <a href="/pages/status.html"   style="display:block;color:rgba(255,255,255,.32);font-size:.84rem;text-decoration:none;margin-bottom:.55rem;transition:color .2s" onmouseover="this.style.color='var(--gold-l)'" onmouseout="this.style.color='rgba(255,255,255,.32)'">📡 Flight Status</a>
+        <a href="/pages/bookings.html" style="display:block;color:rgba(255,255,255,.32);font-size:.84rem;text-decoration:none;margin-bottom:.55rem;transition:color .2s" onmouseover="this.style.color='var(--gold-l)'" onmouseout="this.style.color='rgba(255,255,255,.32)'">🎫 My Bookings</a>
+        <a href="/pages/miles.html"    style="display:block;color:rgba(255,255,255,.32);font-size:.84rem;text-decoration:none;margin-bottom:.55rem;transition:color .2s" onmouseover="this.style.color='var(--gold-l)'" onmouseout="this.style.color='rgba(255,255,255,.32)'">🌟 SkyMiles</a>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div style="border-top:1px solid rgba(255,255,255,.07);padding:1.4rem 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;font-size:.78rem">
+      <span style="color:rgba(255,255,255,.3)">© 2026 <span style="color:var(--gold)">Skape Airways</span>. All rights reserved.</span>
+      <div style="display:flex;gap:2rem">
+        <span style="color:rgba(255,255,255,.2)">Made with ♥ for premium travellers</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  renderNav('home');
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('travelDate').min   = today;
+  document.getElementById('travelDate').value = today;
+
+
+
+  // ── Airports ───────────────────────────────────
+  async function loadAirports() {
+    try {
+      const airports = await get('/airports');
+      const fromSel = document.getElementById('fromCode');
+      const toSel   = document.getElementById('toCode');
+      airports.forEach(a => {
+        const opt = `<option value="${a.code}">${a.code} — ${a.city}</option>`;
+        fromSel.innerHTML += opt; toSel.innerHTML += opt;
+      });
+    } catch(e) { console.error(e); }
+  }
+  loadAirports();
+
+  function prefillSearch(toCode) {
+    document.getElementById('toCode').value = toCode;
+    document.getElementById('fromCode').focus();
+  }
+
+  // ── Fare Calendar ──────────────────────────────
+  let fareCalendarCache = {};
+
+  function hideFareCalendar() {
+    document.getElementById('fare-calendar').style.display = 'none';
+  }
+
+  async function loadFareCalendar() {
+    const from = document.getElementById('fromCode').value;
+    const to   = document.getElementById('toCode').value;
+    const date = document.getElementById('travelDate').value;
+    if (!from || !to || !date) return;
+
+    document.getElementById('fare-calendar').style.display = 'block';
+    const daysEl = document.getElementById('fare-calendar-days');
+    daysEl.innerHTML = '<div style="color:var(--muted);font-size:.8rem;grid-column:1/-1">Loading fares...</div>';
+
+    // Build 7 days around chosen date
+    const base = new Date(date);
+    const days = [];
+    for (let i = -1; i <= 5; i++) {
+      const d = new Date(base);
+      d.setDate(d.getDate() + i);
+      days.push(d.toISOString().split('T')[0]);
+    }
+
+    // Fetch all days in parallel (gracefully handle failures)
+    const results = await Promise.allSettled(
+      days.map(d => get(`/flights/search?from=${from}&to=${to}&date=${d}`))
+    );
+
+    daysEl.innerHTML = days.map((d, i) => {
+      const res = results[i];
+      const flights = res.status === 'fulfilled' ? res.value : [];
+      const minPrice = flights.length > 0
+        ? Math.min(...flights.map(f => f.dynamicEconomyPrice || f.economyPrice))
+        : null;
+      const isSelected = d === date;
+      const isPast     = new Date(d) < new Date(today);
+      const dayLabel   = new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+
+      if (isPast) {
+        return `<div style="text-align:center;padding:.5rem .25rem;border-radius:8px;opacity:.4;border:1px dashed var(--cream-d)">
+          <div style="font-size:.65rem;color:var(--muted)">${dayLabel}</div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:.2rem">—</div>
+        </div>`;
+      }
+
+      const bg      = isSelected ? 'var(--navy)' : 'var(--white)';
+      const color   = isSelected ? '#fff' : 'var(--text)';
+      const border  = isSelected ? 'var(--navy)' : (minPrice ? 'rgba(201,168,76,.3)' : 'var(--cream-d)');
+      const priceEl = minPrice
+        ? `<div style="font-size:.72rem;font-weight:700;color:${isSelected?'var(--gold-l)':'var(--gold-d)'};margin-top:.2rem">₹${(minPrice/1000).toFixed(1)}k</div>`
+        : `<div style="font-size:.7rem;color:var(--muted);margin-top:.2rem">No flights</div>`;
+
+      return `<div onclick="selectCalendarDay('${d}')" style="text-align:center;padding:.5rem .25rem;border-radius:8px;cursor:${minPrice?'pointer':'default'};background:${bg};border:1.5px solid ${border};transition:all .2s">
+        <div style="font-size:.65rem;font-weight:600;color:${isSelected?'rgba(255,255,255,.7)':'var(--muted)'}">${dayLabel}</div>
+        ${priceEl}
+      </div>`;
+    }).join('');
+  }
+
+  function selectCalendarDay(date) {
+    document.getElementById('travelDate').value = date;
+    loadFareCalendar();
+  }
+
+  // also trigger calendar when route changes
+  document.getElementById('fromCode').addEventListener('change', loadFareCalendar);
+  document.getElementById('toCode').addEventListener('change', loadFareCalendar);
+
+  // ── Search ─────────────────────────────────────
+  async function searchFlights() {
+    const from   = document.getElementById('fromCode').value;
+    const to     = document.getElementById('toCode').value;
+    const date   = document.getElementById('travelDate').value;
+    const retDt  = document.getElementById('returnDate')?.value || '';
+    if (!from || !to || !date) { showAlert('search-alert','Please fill in all fields.','error'); return; }
+    if (from === to)           { showAlert('search-alert','Origin and destination cannot be the same.','error'); return; }
+    if (tripType === 'roundtrip' && !retDt) { showAlert('search-alert','Please select a return date.','error'); return; }
+    if (tripType === 'roundtrip' && retDt < date) { showAlert('search-alert','Return date must be after departure.','error'); return; }
+
+    const btn = document.getElementById('search-btn');
+    setLoading(btn, true);
+    try {
+      const flights = await get(`/flights/search?from=${from}&to=${to}&date=${date}`);
+      displayResults(flights, from, to, date);
+    } catch(e) { showAlert('search-alert', e.message, 'error'); }
+    finally    { setLoading(btn, false); }
+  }
+
+  // ── Demand badge ───────────────────────────────
+  function demandBadge(label, pct) {
+    const map = {
+      SELLING_FAST: ['#dc2626','🔥 Selling Fast'],
+      HIGH_DEMAND:  ['#d97706','📈 High Demand'],
+      FILLING_UP:   ['#d97706','⚡ Filling Up'],
+      AVAILABLE:    ['#16a34a','✅ Available'],
+      LOW_DEMAND:   ['#64748b','🟢 Good Availability'],
+    };
+    const [color, text] = map[label] || ['#64748b','Available'];
+    const surge = pct > 0 ? `<span style="color:${color};font-size:.7rem;margin-left:.2rem">+${pct}%</span>` : '';
+    return `<span class="demand-badge" style="background:${color}14;color:${color};">${text}</span>${surge}`;
+  }
+
+  // ── Render results ─────────────────────────────
+  function displayResults(flights, from, to, date) {
+    const section = document.getElementById('results-section');
+    const list    = document.getElementById('flight-list');
+    section.style.display = 'block';
+    document.getElementById('results-title').textContent = `${from} → ${to} · ${formatDate(date+'T00:00:00')}`;
+    document.getElementById('results-count').textContent = `${flights.length} flight${flights.length!==1?'s':''} found`;
+    section.scrollIntoView({ behavior:'smooth' });
+
+    if (!flights.length) {
+      list.innerHTML = `<div class="card text-center" style="padding:3.5rem">
+        <div style="font-size:3rem;margin-bottom:1rem">✈️</div>
+        <h3 style="font-size:1.5rem;margin-bottom:.5rem">No Flights Found</h3>
+        <p class="text-muted">Try a different date or nearby airports.</p>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = flights.map(f => `
+      <div class="flight-card">
+        <div>
+          <div class="airline-badge-sm"><span class="airline-dot"></span>${f.airlineName||'Skape Airways'} · ${f.flightNumber}</div>
+          <div class="flight-time">${formatTime(f.departureTime)}</div>
+          <div class="flight-city">${f.fromCity}</div>
+          <div style="font-size:.76rem;color:var(--muted)">${f.fromCode}</div>
+        </div>
+        <div class="flight-line">
+          <div class="flight-duration">${formatDuration(f.durationMinutes)}</div>
+          <div class="flight-track"><div class="track-line"></div><div class="track-plane">✈</div><div class="track-line"></div></div>
+          <div style="font-size:.72rem;color:var(--muted)">Non-stop</div>
+          <div style="margin-top:.3rem">${seatUrgencyBadge(f.availableSeats)}</div>
+        </div>
+        <div>
+          <div class="flight-time">${formatTime(f.arrivalTime)}</div>
+          <div class="flight-city">${f.toCity}</div>
+          <div style="font-size:.76rem;color:var(--muted)">${f.toCode}</div>
+        </div>
+        <div class="price-block">
+          <div>${demandBadge(f.demandLabel, f.priceChangePercent)}</div>
+          <div class="price-amount">${formatMoney(f.dynamicEconomyPrice)}</div>
+          ${f.priceChangePercent > 0 ? `<div class="price-was">Base: ${formatMoney(f.economyPrice)}</div>` : ''}
+          <div class="price-label">Economy onwards</div>
+          <button class="btn btn-primary btn-sm" onclick="bookFlight(${f.id})" style="width:100%;margin-top:.5rem">Book Now →</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function bookFlight(id) {
+    if (!Auth.isLoggedIn()) { window.location.href=`/login.html?redirect=/pages/book.html?flightId=${id}`; return; }
+    window.location.href = `/pages/book.html?flightId=${id}`;
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Users — Admin</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+<div class="admin-layout">
+  <aside class="admin-sidebar" style="position:relative">
+    <div style="padding:1.5rem 1.5rem 1rem;border-bottom:1px solid rgba(201,168,76,.1);margin-bottom:.5rem">
+      <div style="font-size:.58rem;font-weight:700;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.18em">Control Center</div>
+    </div>
+    <a href="/pages/admin/dashboard.html" class="sidebar-link ">📊 &nbsp;Dashboard</a>
+    <a href="/pages/admin/flights.html"   class="sidebar-link ">✈ &nbsp;Flights</a>
+    <a href="/pages/admin/bookings.html"  class="sidebar-link ">🎫 &nbsp;Bookings</a>
+    <a href="/pages/admin/users.html"     class="sidebar-link active">👥 &nbsp;Users</a>
+    <a href="/pages/admin/airports.html"  class="sidebar-link ">🏢 &nbsp;Airports</a>
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem;border-top:1px solid rgba(201,168,76,.1)">
+      <button onclick="Auth.logout()" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);color:rgba(255,130,130,.75);cursor:pointer;font-size:.82rem;padding:.5rem .9rem;border-radius:7px;font-family:'Outfit',sans-serif;width:100%">🚪 Sign Out</button>
+    </div>
+  </aside>
+  <main class="admin-content">
+    <h1 class="page-title">Registered Users</h1>
+    <div id="alert-box"></div>
+    <div id="spinner" class="spinner"></div>
+    <div class="card hidden" id="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  requireAdmin();
+  renderNav();
+  async function loadUsers() {
+    try {
+      const users = await get('/admin/users');
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('table-card').classList.remove('hidden');
+      document.getElementById('users-tbody').innerHTML = users.map((u,i) => `
+        <tr>
+          <td>${i+1}</td>
+          <td><strong>${u.name}</strong></td>
+          <td>${u.email}</td>
+          <td>${u.phone || '—'}</td>
+          <td><span class="badge ${u.role==='ADMIN'?'badge-gold':'badge-info'}">${u.role}</span></td>
+          <td>${formatDate(u.createdAt)}</td>
+          <td>
+            ${u.role !== 'ADMIN' ? `<button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id},'${u.name}')">Delete</button>` : '<span class="text-muted">—</span>'}
+          </td>
+        </tr>`).join('');
+    } catch(e) {
+      showAlert('alert-box', e.message, 'error');
+      document.getElementById('spinner').style.display = 'none';
+    }
+  }
+  async function deleteUser(id, name) {
+    if (!confirm(`Delete user "${name}"?`)) return;
+    try {
+      await del(`/admin/users/${id}`);
+      showAlert('alert-box', 'User deleted.', 'success');
+      loadUsers();
+    } catch(e) { showAlert('alert-box', e.message, 'error'); }
+  }
+  loadUsers();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Book Flight — Skape Airways</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <style>
+    /* ── Razorpay Modal ─────────────────────────────── */
+    .rzp-overlay {
+      position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:999;
+      display:flex;align-items:center;justify-content:center;padding:1rem;
+    }
+    .rzp-modal {
+      background:#fff;border-radius:12px;width:100%;max-width:460px;
+      box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden;
+      animation:rzpIn .25s ease;
+    }
+    @keyframes rzpIn { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+    .rzp-header {
+      background:#2d81f7;padding:1.2rem 1.5rem;color:#fff;
+      display:flex;justify-content:space-between;align-items:center;
+    }
+    .rzp-logo { font-size:1.1rem;font-weight:700;letter-spacing:.5px; }
+    .rzp-secure { font-size:.75rem;opacity:.85; }
+    .rzp-close { background:none;border:none;color:#fff;font-size:1.4rem;cursor:pointer;line-height:1; }
+    .rzp-body  { padding:1.5rem; }
+    .rzp-amount-bar {
+      background:#f8fafc;border-radius:8px;padding:1rem;margin-bottom:1.2rem;
+      display:flex;justify-content:space-between;align-items:center;
+      border:1px solid #e2e8f0;
+    }
+    .rzp-tabs { display:flex;gap:.5rem;margin-bottom:1.2rem;flex-wrap:wrap; }
+    .rzp-tab {
+      flex:1;min-width:80px;padding:.55rem .4rem;border-radius:8px;border:1.5px solid #e2e8f0;
+      background:#fff;cursor:pointer;font-size:.82rem;font-weight:600;color:#475569;transition:all .15s;
+      text-align:center;
+    }
+    .rzp-tab.active { border-color:#2d81f7;color:#2d81f7;background:#eff6ff; }
+    .rzp-input { width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:8px;
+                 font-size:.92rem;margin-bottom:.8rem;outline:none;box-sizing:border-box; }
+    .rzp-input:focus { border-color:#2d81f7; }
+    .rzp-row { display:grid;grid-template-columns:1fr 1fr;gap:.8rem; }
+    .rzp-pay-btn {
+      width:100%;padding:.9rem;background:#2d81f7;color:#fff;border:none;border-radius:8px;
+      font-size:1rem;font-weight:700;cursor:pointer;transition:background .2s;margin-top:.5rem;
+    }
+    .rzp-pay-btn:hover { background:#1a6fd4; }
+    .rzp-pay-btn:disabled { background:#93c5fd;cursor:not-allowed; }
+    .rzp-footer { text-align:center;font-size:.75rem;color:#94a3b8;margin-top:.8rem; }
+    .rzp-error { background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;
+                 border-radius:8px;padding:.7rem 1rem;font-size:.85rem;margin-bottom:.8rem; }
+    /* UPI QR mock */
+    .rzp-qr { text-align:center;padding:1rem 0; }
+    .rzp-qr-box { width:140px;height:140px;margin:0 auto .8rem;background:repeating-conic-gradient(#000 0% 25%,#fff 0% 50%) 0 0/8px 8px;border:3px solid #000;border-radius:4px; }
+    /* Net banking list */
+    .rzp-bank-list { display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.8rem; }
+    .rzp-bank-item { border:1.5px solid #e2e8f0;border-radius:8px;padding:.6rem .5rem;text-align:center;
+                     cursor:pointer;font-size:.82rem;font-weight:600;color:#475569;transition:all .15s; }
+    .rzp-bank-item.selected { border-color:#2d81f7;color:#2d81f7;background:#eff6ff; }
+    /* Processing animation */
+    .rzp-processing { text-align:center;padding:2rem; }
+    .rzp-tick { font-size:3rem;margin-bottom:.5rem; }
+    /* Dynamic price warning */
+    .price-surge-note { background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;
+                        padding:.7rem 1rem;font-size:.85rem;color:#c2410c;margin-bottom:1rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<div class="container section">
+  <!-- Step indicator -->
+  <div style="display:flex;gap:0;margin-bottom:2rem">
+    <div id="step1-ind" style="flex:1;text-align:center;padding:.6rem;background:var(--navy);color:var(--gold-l);border-radius:8px 0 0 8px;font-weight:600;font-size:.9rem">① Select Seat</div>
+    <div id="step2-ind" style="flex:1;text-align:center;padding:.6rem;background:var(--cream-d);color:var(--muted);font-weight:600;font-size:.9rem">② Passenger Details</div>
+    <div id="step3-ind" style="flex:1;text-align:center;padding:.6rem;background:var(--cream-d);color:var(--muted);border-radius:0 8px 8px 0;font-weight:600;font-size:.9rem">③ Payment</div>
+  </div>
+
+  <div id="alert-box"></div>
+  <div id="spinner" class="spinner"></div>
+  <div id="flight-info" class="hidden"></div>
+
+  <!-- STEP 1 -->
+  <div id="step1" class="hidden">
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:1.5rem;align-items:start">
+      <div class="seat-map">
+        <h3>Select Your Seat</h3>
+        <div class="seat-legend">
+          <div class="seat-legend-item"><div class="legend-box" style="background:#dcfce7;border:1.5px solid #86efac"></div> Economy</div>
+          <div class="seat-legend-item"><div class="legend-box" style="background:#dbeafe;border:1.5px solid #93c5fd"></div> Business</div>
+          <div class="seat-legend-item"><div class="legend-box" style="background:#fef3c7;border:1.5px solid #fcd34d"></div> First Class</div>
+          <div class="seat-legend-item"><div class="legend-box" style="background:#fee2e2;border:1.5px solid #fca5a5"></div> Booked</div>
+          <div class="seat-legend-item"><div class="legend-box" style="background:var(--navy);border:1.5px solid var(--gold)"></div> Selected</div>
+        </div>
+        <div class="aircraft-body" id="seat-grid"></div>
+      </div>
+      <div style="position:sticky;top:80px;display:flex;flex-direction:column;gap:1rem">
+        <!-- ── CLASS UPGRADE UPSELL ── -->
+        <div id="upgrade-upsell" style="display:none">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold-d);margin-bottom:.6rem;display:flex;align-items:center;gap:.35rem"><span style="width:16px;height:1.5px;background:var(--gold-d);display:inline-block"></span>Upgrade Your Cabin</div>
+          <div style="display:flex;flex-direction:column;gap:.5rem" id="upsell-cards"></div>
+        </div>
+
+        <div class="card" id="seat-summary">
+          <h3 style="margin-bottom:1rem">Booking Summary</h3>
+          <div id="summary-content"><p class="text-muted">Select a seat to see price details</p></div>
+          <button class="btn btn-gold btn-full mt-3 hidden" id="proceed-btn" onclick="proceedToPassenger()">Continue →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step2" class="hidden">
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:1.5rem">
+      <div class="card">
+        <h3 style="margin-bottom:1.5rem">Passenger Information</h3>
+        <div id="passenger-forms-container"></div>
+        <div style="display:flex;gap:1rem;margin-top:1.5rem">
+          <button class="btn btn-outline" onclick="goToStep(1)">← Back</button>
+          <button class="btn btn-gold" style="flex:1" id="passenger-btn" onclick="proceedToStep3()">Continue to Payment →</button>
+        </div>
+      </div>
+      <div class="card" id="summary-step2" style="position:sticky;top:80px;height:fit-content"></div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="step3" class="hidden">
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:1.5rem">
+      <div class="card">
+        <h3 style="margin-bottom:1.5rem">💳 Choose Payment Method</h3>
+        <div id="payment-alert"></div>
+
+        <!-- ═══ SKYMILES VOUCHER SECTION ═══ -->
+        <div id="voucher-section" style="background:linear-gradient(135deg,rgba(201,168,76,.07),rgba(201,168,76,.03));border:1.5px solid rgba(201,168,76,.3);border-radius:12px;padding:1.2rem;margin-bottom:1.4rem">
+          <div style="font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-d);margin-bottom:.85rem;display:flex;align-items:center;gap:.35rem">
+            <span style="width:14px;height:1.5px;background:var(--gold-d);display:inline-block"></span>
+            🎟 Apply SkyMiles Voucher
+          </div>
+
+          <!-- Quick-apply chips for unused discount vouchers -->
+          <div id="voucher-chips" style="display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:.75rem"></div>
+
+          <!-- Manual input -->
+          <div style="display:flex;gap:.6rem">
+            <input type="text" id="voucher-input" placeholder="Enter voucher code (e.g. SKYDIS-AB12CD)"
+              style="flex:1;padding:.6rem .9rem;border:1.5px solid rgba(201,168,76,.4);border-radius:8px;font-size:.88rem;outline:none;background:var(--white);font-family:'Courier New',monospace;letter-spacing:.04em"
+              oninput="this.value=this.value.toUpperCase()"/>
+            <button class="btn btn-gold btn-sm" onclick="applyVoucher()" id="apply-voucher-btn">Apply</button>
+          </div>
+          <div id="voucher-status" style="margin-top:.6rem"></div>
+        </div>
+        <!-- ═══ END VOUCHER SECTION ═══ -->
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1.5rem">
+          <button class="btn btn-primary pay-method-btn" onclick="selectPayMethod('razorpay',this)" style="background:#2d81f7;border-color:#2d81f7">
+            💙 Pay with Razorpay
+          </button>
+          <button class="btn btn-outline pay-method-btn" onclick="selectPayMethod('card',this)">💳 Credit / Debit Card</button>
+          <button class="btn btn-outline pay-method-btn" onclick="selectPayMethod('upi',this)">📱 UPI</button>
+          <button class="btn btn-outline pay-method-btn" onclick="selectPayMethod('netbanking',this)">🏦 Net Banking</button>
+        </div>
+
+        <!-- Razorpay info -->
+        <div id="pay-razorpay" style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:1.2rem;text-align:center">
+          <div style="font-size:2rem;margin-bottom:.5rem">💙</div>
+          <div style="font-weight:700;color:#1d4ed8;margin-bottom:.3rem">Razorpay Secure Checkout</div>
+          <div style="font-size:.85rem;color:#64748b;margin-bottom:1rem">Pay via Card, UPI, Net Banking or Wallet — all in one secure popup</div>
+          <button class="btn btn-primary btn-full" id="rzp-open-btn" onclick="openRazorpay()" style="background:#2d81f7;border-color:#2d81f7">
+            🔒 Open Razorpay Checkout
+          </button>
+        </div>
+
+        <!-- Traditional Card -->
+        <div id="pay-card" class="hidden">
+          <div class="payment-card-preview">
+            <div class="card-chip"></div>
+            <div style="font-size:1.2rem;letter-spacing:4px;margin-bottom:.5rem" id="card-display">•••• •••• •••• ••••</div>
+            <div style="display:flex;justify-content:space-between;font-size:.85rem">
+              <span id="name-display">CARD HOLDER</span><span id="expiry-display">MM/YY</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Card Number</label>
+              <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19"
+                oninput="formatCard(this)" onkeyup="document.getElementById('card-display').textContent=this.value||'•••• •••• •••• ••••'"/>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Card Holder Name</label>
+              <input type="text" id="cardHolder" placeholder="Name on card"
+                oninput="document.getElementById('name-display').textContent=this.value.toUpperCase()||'CARD HOLDER'"/>
+            </div>
+            <div class="form-group"><label>Expiry (MM/YY)</label><input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" oninput="document.getElementById('expiry-display').textContent=this.value||'MM/YY'"/></div>
+            <div class="form-group"><label>CVV</label><input type="password" id="cardCvv" placeholder="•••" maxlength="3"/></div>
+          </div>
+          <button class="btn btn-success btn-full mt-2" id="card-pay-btn" onclick="processCardPayment()">🔒 Pay Now</button>
+          <p class="text-muted text-center mt-2" style="font-size:.75rem">Test: card ending 0000 = payment failure</p>
+        </div>
+
+        <!-- UPI -->
+        <div id="pay-upi" class="hidden">
+          <div class="form-group"><label>UPI ID</label><input type="text" id="upiId" placeholder="yourname@upi"/></div>
+          <div class="alert alert-info">ℹ️ You will receive a payment request on your UPI app.</div>
+          <button class="btn btn-success btn-full mt-2" id="upi-pay-btn" onclick="processCardPayment()">🔒 Pay Now</button>
+          <p class="text-muted text-center mt-2" style="font-size:.75rem">Test: upi id "fail@upi" = failure</p>
+        </div>
+
+        <!-- Net Banking -->
+        <div id="pay-netbanking" class="hidden">
+          <div class="form-group"><label>Select Bank</label>
+            <select id="bankSelect">
+              <option>State Bank of India</option><option>HDFC Bank</option>
+              <option>ICICI Bank</option><option>Axis Bank</option>
+              <option>Punjab National Bank</option><option>Kotak Mahindra Bank</option>
+            </select>
+          </div>
+          <div class="alert alert-info">ℹ️ You will be redirected to your bank's secure portal.</div>
+          <button class="btn btn-success btn-full mt-2" id="nb-pay-btn" onclick="processCardPayment()">🔒 Pay Now</button>
+        </div>
+
+        <div style="display:flex;gap:1rem;margin-top:1.5rem">
+          <button class="btn btn-outline" onclick="goToStep(2)">← Back</button>
+        </div>
+        <p class="text-muted text-center mt-2" style="font-size:.78rem">🔒 256-bit encrypted · All payments are secure</p>
+      </div>
+      <div class="card" id="summary-step3" style="position:sticky;top:80px;height:fit-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RAZORPAY MOCK MODAL ═══════════════════════════════════════════════════ -->
+<div class="rzp-overlay hidden" id="rzp-overlay">
+  <div class="rzp-modal">
+    <div class="rzp-header">
+      <div>
+        <div class="rzp-logo">💙 Razorpay</div>
+        <div class="rzp-secure">🔒 Secured by Razorpay</div>
+      </div>
+      <button class="rzp-close" onclick="closeRazorpay()">✕</button>
+    </div>
+    <div class="rzp-body">
+      <!-- Amount bar -->
+      <div class="rzp-amount-bar">
+        <div>
+          <div style="font-size:.8rem;color:#64748b">Skape Airways</div>
+          <div style="font-weight:700;font-size:1.1rem;color:#1e293b" id="rzp-amount-display">₹0</div>
+        </div>
+        <div style="text-align:right;font-size:.78rem;color:#64748b" id="rzp-booking-ref"></div>
+      </div>
+
+      <!-- Processing state -->
+      <div class="rzp-processing hidden" id="rzp-processing">
+        <div class="rzp-tick" id="rzp-tick">⏳</div>
+        <div style="font-weight:600;color:#1e293b" id="rzp-status-text">Processing payment...</div>
+        <div style="font-size:.85rem;color:#64748b;margin-top:.4rem" id="rzp-status-sub">Please wait</div>
+      </div>
+
+      <!-- Payment tabs -->
+      <div id="rzp-payment-area">
+        <div class="rzp-tabs">
+          <div class="rzp-tab active" onclick="rzpTab(this,'card')">💳 Card</div>
+          <div class="rzp-tab" onclick="rzpTab(this,'upi')">📱 UPI</div>
+          <div class="rzp-tab" onclick="rzpTab(this,'netbank')">🏦 Netbanking</div>
+          <div class="rzp-tab" onclick="rzpTab(this,'wallet')">👛 Wallet</div>
+        </div>
+
+        <!-- Card tab -->
+        <div id="rzp-card">
+          <input class="rzp-input" id="rzp-card-num" type="text" placeholder="Card number" maxlength="19"
+                 oninput="let v=this.value.replace(/\D/g,'').substring(0,16);this.value=v.match(/.{1,4}/g)?.join(' ')||v"/>
+          <input class="rzp-input" id="rzp-card-name" type="text" placeholder="Card holder name"/>
+          <div class="rzp-row">
+            <input class="rzp-input" id="rzp-expiry" type="text" placeholder="MM / YY" maxlength="5"/>
+            <input class="rzp-input" id="rzp-cvv" type="password" placeholder="CVV" maxlength="3"/>
+          </div>
+        </div>
+
+        <!-- UPI tab -->
+        <div id="rzp-upi" class="hidden">
+          <div class="rzp-qr">
+            <div class="rzp-qr-box"></div>
+            <div style="font-size:.82rem;color:#64748b;margin-bottom:.8rem">Scan with any UPI app</div>
+            <div style="text-align:left">
+              <input class="rzp-input" id="rzp-upi-id" type="text" placeholder="Enter UPI ID  e.g. name@upi"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Netbanking tab -->
+        <div id="rzp-netbank" class="hidden">
+          <div class="rzp-bank-list" id="rzp-bank-list">
+            <div class="rzp-bank-item selected" onclick="rzpSelectBank(this)">SBI</div>
+            <div class="rzp-bank-item" onclick="rzpSelectBank(this)">HDFC</div>
+            <div class="rzp-bank-item" onclick="rzpSelectBank(this)">ICICI</div>
+            <div class="rzp-bank-item" onclick="rzpSelectBank(this)">Axis Bank</div>
+            <div class="rzp-bank-item" onclick="rzpSelectBank(this)">Kotak</div>
+            <div class="rzp-bank-item" onclick="rzpSelectBank(this)">PNB</div>
+          </div>
+        </div>
+
+        <!-- Wallet tab -->
+        <div id="rzp-wallet" class="hidden">
+          <div class="rzp-bank-list">
+            <div class="rzp-bank-item selected" onclick="rzpSelectBank(this)">Paytm</div>
+            <div class="rzp-bank-item" onclick="rzpSelectBank(this)">PhonePe</div>
+            <div class="rzp-bank-item" onclick="rzpSelectBank(this)">Amazon Pay</div>
+            <div class="rzp-bank-item" onclick="rzpSelectBank(this)">Mobikwik</div>
+          </div>
+        </div>
+
+        <div id="rzp-error" class="rzp-error hidden"></div>
+        <button class="rzp-pay-btn" id="rzp-pay-btn" onclick="submitRazorpay()">Pay Now</button>
+        <div class="rzp-footer">🔒 Your payment is secured by Razorpay · 256-bit SSL encryption</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer style="background:#0f2b6e;color:rgba(255,255,255,.7);text-align:center;padding:1.5rem">
+  <p>© 2026 Skape Airways</p>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAuth();
+  renderNav('book');
+
+  const params   = new URLSearchParams(location.search);
+  const flightId = params.get('flightId');
+  let flight = null, selectedSeats = [], selectedMethod = 'razorpay', bookingId = null, rzpOrderId = null;
+  let allSeats = [];          // all seats for this flight (stored for inline upgrade picker)
+  let _upgradeTargetIdx = null; // which selectedSeats index is being upgraded
+
+  if (!flightId) window.location.href = '/index.html';
+
+  async function init() {
+    try {
+      flight = await get(`/flights/${flightId}`);
+      renderFlightInfo();
+      await loadSeats();
+      document.getElementById('spinner').style.display = 'none';
+      _currentFlightForUpsell = flight;
+      renderUpgradeUpsell(flight, 'ECONOMY');
+      document.getElementById('flight-info').classList.remove('hidden');
+      goToStep(1);
+    } catch(e) {
+      showAlert('alert-box','Failed to load flight: '+e.message,'error');
+      document.getElementById('spinner').style.display = 'none';
+    }
+  }
+
+  function renderFlightInfo() {
+    const pct = flight.priceChangePercent;
+    const surgeBadge = pct > 0
+      ? `<span style="background:#fff7ed;color:#c2410c;padding:.2rem .7rem;border-radius:12px;font-size:.8rem;font-weight:600">🔥 +${pct}% Demand Surge</span>`
+      : `<span style="background:#f0fdf4;color:#15803d;padding:.2rem .7rem;border-radius:12px;font-size:.8rem;font-weight:600">✅ Good Availability</span>`;
+    document.getElementById('flight-info').innerHTML = `
+      <div class="card" style="margin-bottom:1.25rem" style="border-left:4px solid var(--gold)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+          <div>
+            <span style="font-size:1.3rem;font-weight:700">${formatTime(flight.departureTime)}</span>
+            <span class="text-muted"> ${flight.fromCity} (${flight.fromCode})</span>
+            <span style="margin:0 .8rem;color:var(--gold)">✈ ${formatDuration(flight.durationMinutes)}</span>
+            <span style="font-size:1.3rem;font-weight:700">${formatTime(flight.arrivalTime)}</span>
+            <span class="text-muted"> ${flight.toCity} (${flight.toCode})</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            ${surgeBadge}
+            ${statusBadge(flight.status)}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function loadSeats() {
+    allSeats = await get(`/flights/${flightId}/seats`);
+    renderSeatGrid(allSeats);
+  }
+
+  function renderSeatGrid(seats) {
+    const grid = document.getElementById('seat-grid');
+    const cols = ['A','B','C','','D','E','F'];
+    const rows = {};
+    seats.forEach(s => {
+      const row = s.seatNumber.replace(/[A-F]/g,'');
+      if (!rows[row]) rows[row] = {};
+      rows[row][s.seatNumber.slice(-1)] = s;
+    });
+    let html = '<div style="text-align:center;margin-bottom:.5rem;font-size:.75rem;color:var(--muted)">FRONT / COCKPIT 🛫</div>';
+    Object.keys(rows).sort((a,b)=>+a-+b).forEach(row => {
+      html += `<div class="seat-row"><span class="seat-row-label">${row}</span>`;
+      cols.forEach(col => {
+        if (!col) { html += `<div class="seat-aisle"></div>`; return; }
+        const seat = rows[row][col];
+        if (!seat) { html += `<div style="width:36px"></div>`; return; }
+        let cls = 'seat-available ' + seat.seatClass, disabled = '';
+        if (seat.booked || seat.locked) { cls = seat.booked ? 'seat-booked' : 'seat-locked'; disabled = 'disabled'; }
+        if (seat.lockedByMe) { cls = 'seat-locked-me'; disabled = ''; }
+        html += `<button class="seat-btn ${cls}" ${disabled}
+          data-id="${seat.id}" data-class="${seat.seatClass}" data-num="${seat.seatNumber}"
+          onclick="selectSeat(this,${seat.id},'${seat.seatClass}','${seat.seatNumber}')"
+          title="${seat.seatNumber} · ${classLabel(seat.seatClass)}">${col}</button>`;
+      });
+      html += '</div>';
+    });
+    html += '<div style="text-align:center;margin-top:.5rem;font-size:.75rem;color:var(--muted)">REAR 🛬</div>';
+    grid.innerHTML = html;
+  }
+
+  async function selectSeat(btn, seatId, seatClass, seatNumber) {
+    const alreadyIdx = selectedSeats.findIndex(s => s.id === seatId);
+    if (alreadyIdx >= 0) {
+      btn.classList.remove('seat-selected');
+      btn.classList.add('seat-available');
+      btn.classList.add(seatClass);
+      selectedSeats.splice(alreadyIdx, 1);
+      // FIX: Release the backend lock so other users can select this seat immediately
+      try { await del(`/flights/${flightId}/seats/${seatId}/lock`); } catch(_) {}
+      updateSummary();
+      document.getElementById('proceed-btn').classList.toggle('hidden', selectedSeats.length === 0);
+      showAlert('alert-box', `Seat ${seatNumber} deselected.`, 'info');
+      return;
+    }
+    // Select — lock seat
+    btn.classList.add('seat-selected');
+    try {
+      const lockRes = await post(`/flights/${flightId}/seats/${seatId}/lock`, {});
+      selectedSeats.push({ id: seatId, seatClass, seatNumber, lockExpiresAt: lockRes.lockExpiresAt });
+      updateSummary();
+      document.getElementById('proceed-btn').classList.remove('hidden');
+      showAlert('alert-box', `Seat ${seatNumber} held for ${lockRes.lockDurationMinutes} min.`, 'success');
+    } catch(e) {
+      btn.classList.remove('seat-selected');
+      showAlert('alert-box', e.message, 'error');
+    }
+  }
+
+  function dynamicPriceForClass(cls) {
+    if (cls === 'FIRST_CLASS') return flight.dynamicFirstClassPrice;
+    if (cls === 'BUSINESS')    return flight.dynamicBusinessPrice;
+    return flight.dynamicEconomyPrice;
+  }
+  function basePriceForClass(cls) {
+    if (cls === 'FIRST_CLASS') return flight.firstClassPrice;
+    if (cls === 'BUSINESS')    return flight.businessPrice;
+    return flight.economyPrice;
+  }
+
+  function updateSummary() {
+    if (selectedSeats.length === 0) {
+      document.getElementById('summary-content').innerHTML = '<p class="text-muted">Select seats to see price details</p>';
+      return;
+    }
+    let total = 0;
+    let seatsHtml = selectedSeats.map((s, i) => {
+      let price     = dynamicPriceForClass(s.seatClass);
+      const basePrice = basePriceForClass(s.seatClass);
+      const pct       = Math.round(((price - basePrice) / basePrice) * 100);
+
+      // Seat upgrade voucher: charge economy price for the upgraded seat only
+      if (window._upgradeVoucherActive && i === _upgradeTargetIdx && s.seatClass === 'BUSINESS') {
+        const economyPrice = dynamicPriceForClass('ECONOMY');
+        const saving = price - economyPrice;
+        total += economyPrice;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid #ede4d3">
+          <div>
+            <strong>${s.seatNumber}</strong>
+            <span class="text-muted" style="font-size:.8rem"> · ${classLabel(s.seatClass)}</span>
+            <div style="font-size:.75rem;color:#2563eb;margin-top:.2rem">🎟 Upgrade voucher applied — saving ${formatMoney(saving)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="text-decoration:line-through;color:var(--muted);font-size:.8rem">${formatMoney(price)}</div>
+            <strong style="color:#15803d">${formatMoney(economyPrice)}</strong>
+          </div>
+        </div>`;
+      }
+
+      total += price;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid #ede4d3">
+        <div>
+          <strong>${s.seatNumber}</strong>
+          <span class="text-muted" style="font-size:.8rem"> · ${classLabel(s.seatClass)}</span>
+          ${pct > 0 ? `<span style="font-size:.75rem;color:#c2410c;margin-left:.3rem">+${pct}%🔥</span>` : ''}
+        </div>
+        <strong>${formatMoney(price)}</strong>
+      </div>`;
+    }).join('');
+
+    // Flight discount voucher line
+    let voucherLine = '';
+    let discountAmt = 0;
+    if (appliedVoucher && appliedVoucher.type === 'FLIGHT_DISCOUNT') {
+      discountAmt = appliedVoucher.discountAmount;
+      voucherLine = `<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;color:#15803d;font-size:.88rem">
+        <span>🎟 Voucher (${appliedVoucher.code})</span>
+        <strong>− ${formatMoney(discountAmt)}</strong>
+      </div>`;
+      total = Math.max(0, total - discountAmt);
+    }
+
+    const html = `
+      <div style="font-size:.85rem">
+        <div style="margin-bottom:.8rem;padding-bottom:.8rem;border-bottom:1px solid #ede4d3">
+          <strong>${flight.flightNumber}</strong><br/>
+          <span class="text-muted">${flight.fromCity} → ${flight.toCity}</span><br/>
+          <span class="text-muted">${formatDate(flight.departureTime)}</span>
+        </div>
+        <div style="margin-bottom:.8rem">
+          <div style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">
+            Selected Seats (${selectedSeats.length})
+          </div>
+          ${seatsHtml}
+        </div>
+        ${voucherLine}
+        <div class="flex-between" style="font-size:1rem;margin-top:.5rem;padding-top:.5rem;border-top:2px solid #ede4d3">
+          <span><strong>Total</strong></span>
+          <strong style="color:var(--navy);font-family:'Cormorant Garamond',serif;font-size:1.2rem">${formatMoney(total)}</strong>
+        </div>
+      </div>`;
+    document.getElementById('summary-content').innerHTML = html;
+    ['summary-step2','summary-step3'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<h3 style="margin-bottom:1rem">Summary</h3>' + html;
+    });
+  }
+
+  async function proceedToPassenger() {
+    if (selectedSeats.length === 0) { showAlert('alert-box','Please select at least one seat.','error'); return; }
+    renderPassengerForms();
+    goToStep(2);
+  }
+
+  function renderPassengerForms() {
+    const container = document.getElementById('passenger-forms-container');
+    container.innerHTML = selectedSeats.map((s, i) => `
+      <div style="background:var(--cream);border:1px solid var(--cream-d);border-radius:10px;padding:1.1rem;margin-bottom:1rem">
+        <div style="font-weight:700;margin-bottom:.8rem;color:var(--navy);font-size:.9rem">
+          Passenger ${i+1} — Seat <strong>${s.seatNumber}</strong>
+          <span style="font-size:.8rem;color:var(--muted);font-weight:400"> (${classLabel(s.seatClass)})</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="form-group"><label>Full Name *</label>
+            <input type="text" id="pName_${i}" placeholder="Name as per ID"/></div>
+          <div class="form-group"><label>Age *</label>
+            <input type="number" id="pAge_${i}" placeholder="Age" min="1" max="120"/></div>
+          <div class="form-group"><label>Gender *</label>
+            <select id="pGender_${i}"><option value="">Select</option>
+              <option>Male</option><option>Female</option><option>Other</option></select></div>
+          <div class="form-group"><label>Passport / Aadhar</label>
+            <input type="text" id="pPassport_${i}" placeholder="Optional"/></div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Step 2 → Step 3: validate passengers and store them; do NOT create bookings yet
+  async function proceedToStep3() {
+    const passengers = [];
+    for (let i = 0; i < selectedSeats.length; i++) {
+      const name    = document.getElementById(`pName_${i}`)?.value.trim();
+      const age     = document.getElementById(`pAge_${i}`)?.value;
+      const gender  = document.getElementById(`pGender_${i}`)?.value;
+      const passport= document.getElementById(`pPassport_${i}`)?.value.trim();
+      if (!name || !age || !gender) {
+        showAlert('alert-box', `Please fill all required details for Passenger ${i+1}.`, 'error');
+        return;
+      }
+      if (parseInt(age) < 1 || parseInt(age) > 120) {
+        showAlert('alert-box', `Please enter a valid age for Passenger ${i+1}.`, 'error');
+        return;
+      }
+      passengers.push({ name, age: parseInt(age), gender, passport: passport || '' });
+    }
+    // Store for payment time — no DB bookings yet
+    window._passengers = passengers;
+    goToStep(3);
+  }
+
+  // Creates bookings in DB for all selected seats — called just before payment
+  // Idempotent: if already created (window._allBookingIds set), returns immediately
+  async function createAllBookings() {
+    if (window._allBookingIds && window._allBookingIds.length > 0) return; // already created
+
+    if (!window._passengers || window._passengers.length !== selectedSeats.length)
+      throw new Error('Passenger data missing. Please go back to Step 2.');
+
+    const bookingIds = [];
+    for (let i = 0; i < selectedSeats.length; i++) {
+      const seat = selectedSeats[i];
+      const p    = window._passengers[i];
+      const isUpgrade = window._upgradeVoucherActive
+                        && i === _upgradeTargetIdx
+                        && seat.seatClass === 'BUSINESS';
+      const booking = await post('/bookings', {
+        flightId:             parseInt(flightId),
+        seatId:               seat.id,
+        passengerName:        p.name,
+        passengerAge:         p.age,
+        passengerGender:      p.gender,
+        passengerPassport:    p.passport,
+        upgradeVoucherActive: isUpgrade
+      });
+      bookingIds.push(booking.id);
+    }
+    bookingId = bookingIds[0];
+    window._allBookingIds = bookingIds;
+    return bookingIds;
+  }
+
+  function selectPayMethod(method, btn) {
+    selectedMethod = method;
+    document.querySelectorAll('.pay-method-btn').forEach(b => {
+      b.classList.remove('btn-primary'); b.classList.add('btn-outline');
+      b.style.background=''; b.style.borderColor=''; b.style.color='';
+    });
+    btn.classList.add('btn-primary'); btn.classList.remove('btn-outline');
+    ['razorpay','card','upi','netbanking'].forEach(m =>
+      document.getElementById('pay-'+m)?.classList.add('hidden'));
+    const el = document.getElementById('pay-'+method);
+    if (el) el.classList.remove('hidden');
+  }
+
+  // ── Razorpay Mock Flow ────────────────────────────────────────────────────
+  // Shared total calculation used by both Razorpay and card payment
+  function calculateTotal() {
+    let total = selectedSeats.reduce((sum, s, i) => {
+      if (window._upgradeVoucherActive && i === _upgradeTargetIdx && s.seatClass === 'BUSINESS')
+        return sum + dynamicPriceForClass('ECONOMY');
+      return sum + dynamicPriceForClass(s.seatClass);
+    }, 0);
+    if (appliedVoucher && appliedVoucher.type === 'FLIGHT_DISCOUNT')
+      total = Math.max(0, total - appliedVoucher.discountAmount);
+    return total;
+  }
+
+  async function openRazorpay() {
+    const btn = document.getElementById('rzp-open-btn');
+    setLoading(btn, true);
+    try {
+      // Create bookings in DB first (deferred from Step 2→3)
+      await createAllBookings();
+
+      const totalPrice = calculateTotal();
+      const order = await post('/razorpay/create-order', {
+        amount:  Math.round(totalPrice * 100),
+        receipt: 'booking_' + bookingId
+      });
+      rzpOrderId = order.id;
+      document.getElementById('rzp-amount-display').textContent = formatMoney(totalPrice);
+      document.getElementById('rzp-booking-ref').textContent = 'Booking #' + bookingId;
+      document.getElementById('rzp-overlay').classList.remove('hidden');
+      document.getElementById('rzp-processing').classList.add('hidden');
+      document.getElementById('rzp-payment-area').style.display = '';
+    } catch(e) {
+      showAlert('payment-alert', 'Could not open Razorpay: ' + e.message, 'error');
+    } finally { setLoading(btn, false); }
+  }
+
+  function closeRazorpay() {
+    document.getElementById('rzp-overlay').classList.add('hidden');
+    document.getElementById('rzp-error').classList.add('hidden');
+    document.getElementById('rzp-error').textContent = '';
+  }
+
+  function rzpTab(el, tab) {
+    document.querySelectorAll('.rzp-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    ['card','upi','netbank','wallet'].forEach(t => {
+      const div = document.getElementById('rzp-'+t);
+      if (div) div.classList.toggle('hidden', t !== tab);
+    });
+  }
+
+  function rzpSelectBank(el) {
+    el.closest('.rzp-bank-list').querySelectorAll('.rzp-bank-item').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  async function submitRazorpay() {
+    const btn = document.getElementById('rzp-pay-btn');
+    btn.disabled = true; btn.textContent = 'Processing...';
+    document.getElementById('rzp-error').classList.add('hidden');
+
+    // Show processing animation
+    document.getElementById('rzp-payment-area').style.display = 'none';
+    const procDiv = document.getElementById('rzp-processing');
+    procDiv.classList.remove('hidden');
+    document.getElementById('rzp-tick').textContent = '⏳';
+    document.getElementById('rzp-status-text').textContent = 'Processing payment...';
+    document.getElementById('rzp-status-sub').textContent  = 'Do not close this window';
+
+    // Generate mock payment id
+    const mockPaymentId = 'pay_' + Math.random().toString(36).substring(2,16).toUpperCase();
+
+    try {
+      await new Promise(r => setTimeout(r, 2000)); // Simulate processing delay
+
+      // FIX: Use http() wrapper instead of raw fetch so 401 errors are handled correctly
+      const verifyRes = await post('/razorpay/verify', {
+        razorpay_payment_id: mockPaymentId,
+        razorpay_order_id:   rzpOrderId,
+        method: 'card'
+      });
+
+      if (!verifyRes.verified) {
+        // Payment failed
+        document.getElementById('rzp-tick').textContent = '❌';
+        document.getElementById('rzp-status-text').textContent = 'Payment Failed';
+        document.getElementById('rzp-status-sub').textContent  = verifyRes.error || 'Please try again';
+        await new Promise(r => setTimeout(r, 2000));
+        closeRazorpay();
+        document.getElementById('payment-alert').innerHTML =
+          `<div class="alert alert-error">❌ Razorpay payment failed. Please try again.</div>`;
+        document.getElementById('rzp-payment-area').style.display = '';
+        btn.disabled = false; btn.textContent = 'Pay Now';
+        return;
+      }
+
+      // Payment succeeded — confirm with backend
+      document.getElementById('rzp-tick').textContent = '✅';
+      document.getElementById('rzp-status-text').textContent = 'Payment Successful!';
+      document.getElementById('rzp-status-sub').textContent  = 'Confirming your booking...';
+
+      const allIds = window._allBookingIds || [bookingId];
+      // FIX: Each booking needs its OWN unique paymentId to avoid the unique
+      // constraint on the payments.transaction_id column.
+      const paymentIds = allIds.map((_, i) => i === 0 ? mockPaymentId : mockPaymentId + '_' + i);
+      for (let i = 0; i < allIds.length; i++) {
+        // FIX: Use post() wrapper instead of raw fetch
+        const data = await post('/payments/razorpay/confirm', {
+          bookingId:         allIds[i],
+          razorpayPaymentId: paymentIds[i],
+          razorpayOrderId:   rzpOrderId
+        });
+        if (data.error) {
+          closeRazorpay();
+          document.getElementById('payment-alert').innerHTML =
+            `<div class="alert alert-error">❌ Payment confirmation failed for seat ${i+1}: ${data.error}</div>`;
+          return;
+        }
+      }
+      // Step 2: All payments done — send ONE combined receipt email for all passengers
+      // FIX: Use post() wrapper; ignore email errors so booking still succeeds
+      try {
+        await post('/bookings/send-payment-receipt', {
+          bookingIds:    allIds,
+          transactionId: mockPaymentId,
+          paymentMethod: 'RAZORPAY'
+        });
+      } catch(_) { /* Email errors should not block the confirmation page */ }
+
+      // Mark voucher used if one was applied
+      if (appliedVoucher) {
+        try { await post('/miles/vouchers/use', { code: appliedVoucher.code }); } catch(_) {}
+      }
+
+      await new Promise(r => setTimeout(r, 1000));
+      closeRazorpay();
+      window.location.href = `/pages/confirmation.html?bookingId=${bookingId}&txnId=${mockPaymentId}&allIds=${allIds.join(',')}`;
+    } catch(e) {
+      document.getElementById('rzp-tick').textContent = '❌';
+      document.getElementById('rzp-status-text').textContent = 'Something went wrong';
+      document.getElementById('rzp-status-sub').textContent  = e.message;
+      await new Promise(r => setTimeout(r, 2000));
+      closeRazorpay();
+      document.getElementById('payment-alert').innerHTML =
+        `<div class="alert alert-error">❌ ${e.message}</div>`;
+      document.getElementById('rzp-payment-area').style.display = '';
+      btn.disabled = false; btn.textContent = 'Pay Now';
+    }
+  }
+  // ── Traditional payment ───────────────────────────────────────────────────
+  async function processCardPayment() {
+    const btn = document.querySelector(`#pay-${selectedMethod} .btn-success`);
+    setLoading(btn, true);
+    document.getElementById('payment-alert').innerHTML = '';
+    try {
+      // Create bookings first (deferred from Step 2→3)
+      await createAllBookings();
+      const allIds = window._allBookingIds || [bookingId];
+      let lastTxnId = null;
+
+      // Process payment for each booking
+      for (let i = 0; i < allIds.length; i++) {
+        const bid = allIds[i];
+        // Apply flight discount to first booking only
+        const discount = (appliedVoucher && appliedVoucher.type === 'FLIGHT_DISCOUNT' && i === 0)
+            ? appliedVoucher.discountAmount : 0;
+
+        const payload = {
+          bookingId:      bid,
+          paymentMethod:  selectedMethod.toUpperCase(),
+          cardNumber:     document.getElementById('cardNumber')?.value.replace(/\s/g,''),
+          cardExpiry:     document.getElementById('cardExpiry')?.value,
+          cardCvv:        document.getElementById('cardCvv')?.value,
+          cardHolderName: document.getElementById('cardHolder')?.value,
+          upiId:          document.getElementById('upiId')?.value,
+          discountAmount: discount
+        };
+        const result = await post('/payments/process', payload);
+        if (result.status !== 'SUCCESS') {
+          document.getElementById('payment-alert').innerHTML =
+            `<div class="alert alert-error">❌ ${result.message}</div>`;
+          setLoading(btn, false);
+          return;
+        }
+        lastTxnId = result.transactionId;
+      }
+
+      // Step 2: Mark voucher used in DB
+      if (appliedVoucher) {
+        try { await post('/miles/vouchers/use', { code: appliedVoucher.code }); } catch(_) {}
+      }
+      if (window._upgradeVoucherCode) {
+        try { await post('/miles/vouchers/use', { code: window._upgradeVoucherCode }); } catch(_) {}
+      }
+
+      // Step 3: Send receipt email
+      try {
+        await post('/bookings/send-payment-receipt', {
+          bookingIds:    allIds,
+          transactionId: lastTxnId,
+          paymentMethod: selectedMethod.toUpperCase()
+        });
+      } catch(_) {}
+
+      window.location.href = `/pages/confirmation.html?bookingId=${bookingId}&txnId=${lastTxnId}&allIds=${allIds.join(',')}`;
+    } catch(e) {
+      document.getElementById('payment-alert').innerHTML =
+        `<div class="alert alert-error">❌ ${e.message}</div>`;
+    } finally { setLoading(btn, false); }
+  }
+
+  function formatCard(input) {
+    let v = input.value.replace(/\D/g,'').substring(0,16);
+    input.value = v.match(/.{1,4}/g)?.join(' ') || v;
+  }
+
+  function goToStep(n) {
+    [1,2,3].forEach(i => {
+      document.getElementById(`step${i}`).classList.add('hidden');
+      const ind = document.getElementById(`step${i}-ind`);
+      ind.style.background = 'var(--cream-d)';
+      ind.style.color      = 'var(--muted)';
+    });
+    document.getElementById(`step${n}`).classList.remove('hidden');
+    const ind = document.getElementById(`step${n}-ind`);
+    ind.style.background = 'var(--navy)';
+    ind.style.color      = 'var(--gold-l)';
+    updateSummary();
+    window.scrollTo({ top:0, behavior:'smooth' });
+    // Load voucher chips when entering payment step
+    if (n === 3) loadVoucherChips();
+  }
+
+  // ── Class upgrade upsell ─────────────────────────
+  function renderUpgradeUpsell(flightData, selectedSeatClass) {
+    const upsell  = document.getElementById('upgrade-upsell');
+    const cardsEl = document.getElementById('upsell-cards');
+    if (!flightData) { upsell.style.display = 'none'; return; }
+
+    const classes = [
+      { key:'ECONOMY',     label:'Economy',       price: flightData.dynamicEconomyPrice,    icon:'💺', desc:'Standard comfort' },
+      { key:'BUSINESS',    label:'Business',      price: flightData.dynamicBusinessPrice,   icon:'🛋', desc:'Extra legroom · Meal included' },
+      { key:'FIRST_CLASS', label:'First Class',   price: flightData.dynamicFirstClassPrice, icon:'👑', desc:'Lie-flat · Premium dining · Lounge' },
+    ];
+
+    upsell.style.display = '';
+    cardsEl.innerHTML = classes.map(cl => {
+      const isSel = cl.key === selectedSeatClass;
+      return `<div style="background:${isSel?'var(--navy)':'var(--white)'};border:1.5px solid ${isSel?'var(--navy)':'var(--cream-d)'};border-radius:10px;padding:.8rem 1rem;cursor:pointer;transition:all .2s"
+               onclick="filterSeatsByClass('${cl.key}')"
+>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span style="font-size:1.1rem">${cl.icon}</span>
+            <div>
+              <div style="font-size:.85rem;font-weight:700;color:${isSel?'var(--gold-l)':'var(--text)'}">${cl.label}</div>
+              <div style="font-size:.72rem;color:${isSel?'rgba(255,255,255,.45)':'var(--muted)'};margin-top:.1rem">${cl.desc}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:600;color:${isSel?'var(--gold-l)':'var(--text)'}">${formatMoney(cl.price)}</div>
+            ${isSel ? '<div style="font-size:.62rem;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:.1rem">Selected</div>' : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Expose current flight data for upsell (set after flight loads)
+  let _currentFlightForUpsell = null;
+  let _currentSelectedClass   = 'ECONOMY';
+
+  function filterSeatsByClass(cls) {
+    _currentSelectedClass = cls;
+    renderUpgradeUpsell(_currentFlightForUpsell, cls);
+    // Scroll to seat section
+    document.getElementById('seat-grid').querySelectorAll('.seat-btn').forEach(s => {
+      const seatClass = s.dataset.class;
+      s.style.opacity = (seatClass === cls || !cls) ? '1' : '0.25';
+      s.style.pointerEvents = (seatClass === cls || !cls) ? '' : 'none';
+    });
+  }
+
+  // ── Voucher state ─────────────────────────────────────────────────────────
+  let appliedVoucher = null; // { code, type, discountAmount }
+
+  // Load user's unused vouchers as quick-apply chips when entering Step 3
+  async function loadVoucherChips() {
+    const chipsEl = document.getElementById('voucher-chips');
+    if (!chipsEl) return;
+    // Use silentGet — never triggers Auth.logout() on error
+    const vouchers = await silentGet('/miles/vouchers');
+    if (!vouchers || !vouchers.length) {
+      chipsEl.innerHTML = `<span style="font-size:.78rem;color:var(--muted)">No vouchers available. Earn miles and redeem on the <a href="/pages/miles.html" style="color:var(--gold-d)">SkyMiles page</a>.</span>`;
+      return;
+    }
+    chipsEl.innerHTML = vouchers.map(v => {
+      const label = v.type === 'FLIGHT_DISCOUNT' ? '₹50 off' : 'Seat Upgrade';
+      return `<button onclick="quickApply('${v.code}','${v.type}')"
+        style="background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.35);border-radius:20px;
+               padding:.3rem .75rem;font-size:.78rem;font-weight:600;color:var(--gold-d);cursor:pointer;
+               font-family:'Courier New',monospace;transition:background .15s"
+        onmouseover="this.style.background='rgba(201,168,76,.22)'"
+        onmouseout="this.style.background='rgba(201,168,76,.12)'"
+      >${v.code} <span style="font-family:inherit;color:var(--muted)">(${label})</span></button>`;
+    }).join('');
+  }
+
+  function quickApply(code, type) {
+    document.getElementById('voucher-input').value = code;
+    applyVoucher();
+  }
+
+  async function applyVoucher() {
+    const code = document.getElementById('voucher-input').value.trim().toUpperCase();
+    const statusEl = document.getElementById('voucher-status');
+    if (!code) { statusEl.innerHTML = `<div style="color:var(--danger);font-size:.83rem">⚠️ Please enter a voucher code.</div>`; return; }
+
+    try {
+      const res = await post('/miles/vouchers/validate', { code });
+      if (!res.valid) {
+        statusEl.innerHTML = `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:.6rem .9rem;color:#b91c1c;font-size:.84rem">❌ ${res.message}</div>`;
+        return;
+      }
+
+      appliedVoucher = { code: res.code, type: res.type, discountAmount: res.discountAmount };
+
+      if (res.type === 'SEAT_UPGRADE') {
+        window._upgradeVoucherActive = true;
+        window._upgradeVoucherCode   = code;
+        _upgradeTargetIdx            = null;
+
+        if (selectedSeats.length === 1) {
+          // Only 1 seat — upgrade it directly, show seat picker
+          _upgradeTargetIdx = 0;
+          showInlineBusinessSeatPicker(statusEl);
+        } else {
+          // Multiple seats — ask which passenger to upgrade
+          showPassengerPickerForUpgrade(statusEl);
+        }
+      } else {
+        // FLIGHT_DISCOUNT — update summary immediately
+        appliedVoucher = { code, type: 'FLIGHT_DISCOUNT', discountAmount: 50 };
+        statusEl.innerHTML = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.6rem .9rem;font-size:.84rem;color:#15803d;display:flex;justify-content:space-between;align-items:center">
+          <span>🎟 Voucher <strong>${code}</strong> applied — ₹50 off!</span>
+          <button onclick="removeVoucher()" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:1rem;padding:0 .3rem;line-height:1" title="Remove voucher">✕</button>
+        </div>`;
+        updateSummary();
+      }
+    } catch(e) {
+      statusEl.innerHTML = `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:.6rem .9rem;color:#b91c1c;font-size:.84rem">❌ ${e.message}</div>`;
+    }
+  }
+
+  function removeVoucher() {
+    appliedVoucher = null;
+    document.getElementById('voucher-input').value = '';
+    document.getElementById('voucher-status').innerHTML = '';
+    window._upgradeVoucherActive = false;
+    window._upgradeVoucherCode   = null;
+    _upgradeTargetIdx            = null;
+    updateSummary();
+  }
+
+  // Show "Which passenger to upgrade?" chips
+  function showPassengerPickerForUpgrade(statusEl) {
+    const passengers = window._passengers || [];
+    const chips = selectedSeats.map((s, i) => {
+      const pName = passengers[i]?.name || `Passenger ${i+1}`;
+      return `<button onclick="pickUpgradeTarget(${i})"
+        style="background:rgba(21,45,110,.08);border:1.5px solid var(--navy);border-radius:8px;
+               padding:.45rem .9rem;font-size:.83rem;font-weight:600;color:var(--navy);cursor:pointer;
+               transition:background .15s"
+        onmouseover="this.style.background='rgba(21,45,110,.15)'"
+        onmouseout="this.style.background='rgba(21,45,110,.08)'">
+        ✈ ${pName} <span style="font-weight:400;color:var(--muted)">(Seat ${s.seatNumber})</span>
+      </button>`;
+    }).join('');
+
+    statusEl.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(201,168,76,.12),rgba(201,168,76,.05));
+                  border:1.5px solid rgba(201,168,76,.4);border-radius:10px;padding:1rem">
+        <div style="font-size:.85rem;font-weight:700;color:var(--gold-d);margin-bottom:.65rem">
+          ✨ Upgrade voucher active — which passenger to upgrade to Business?
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem">${chips}</div>
+      </div>`;
+  }
+
+  // After passenger selected, show available business seats inline
+  function pickUpgradeTarget(idx) {
+    _upgradeTargetIdx = idx;
+    const statusEl = document.getElementById('voucher-status');
+    showInlineBusinessSeatPicker(statusEl);
+  }
+
+  function showInlineBusinessSeatPicker(statusEl) {
+    const passengers  = window._passengers || [];
+    const pName       = passengers[_upgradeTargetIdx]?.name || `Passenger ${_upgradeTargetIdx + 1}`;
+    const alreadySeat = selectedSeats[_upgradeTargetIdx]?.seatNumber || '';
+
+    // Filter available business seats from allSeats
+    const businessSeats = allSeats.filter(s =>
+      s.seatClass === 'BUSINESS' && !s.booked && !s.locked
+    );
+
+    if (!businessSeats.length) {
+      statusEl.innerHTML = `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;
+                                        padding:.7rem 1rem;color:#b91c1c;font-size:.84rem">
+        ❌ No Business seats available on this flight.
+      </div>`;
+      return;
+    }
+
+    const seatBtns = businessSeats.map(s =>
+      `<button onclick="applyUpgradeSeat(${s.id},'${s.seatNumber}')"
+        style="background:#dbeafe;border:1.5px solid #93c5fd;border-radius:6px;
+               padding:.4rem .65rem;font-size:.8rem;font-weight:700;color:#1d4ed8;
+               cursor:pointer;transition:background .15s;min-width:44px"
+        onmouseover="this.style.background='#bfdbfe'"
+        onmouseout="this.style.background='#dbeafe'"
+        title="${s.seatNumber} · Business">${s.seatNumber}</button>`
+    ).join('');
+
+    const economyPrice   = formatMoney(dynamicPriceForClass('ECONOMY'));
+    const businessPrice  = formatMoney(dynamicPriceForClass('BUSINESS'));
+
+    statusEl.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(201,168,76,.12),rgba(201,168,76,.05));
+                  border:1.5px solid rgba(201,168,76,.4);border-radius:10px;padding:1rem">
+        <div style="font-size:.85rem;font-weight:700;color:var(--gold-d);margin-bottom:.3rem">
+          ✨ Upgrading: <strong>${pName}</strong>${alreadySeat ? ` (currently Seat ${alreadySeat})` : ''}
+        </div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.75rem">
+          Business price <s>${businessPrice}</s> → you pay Economy price <strong>${economyPrice}</strong>
+        </div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:.45rem">
+          Select a Business Class seat:
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:160px;overflow-y:auto">
+          ${seatBtns}
+        </div>
+        <button onclick="cancelUpgradeSelection()"
+          style="margin-top:.65rem;background:none;border:none;color:var(--muted);
+                 font-size:.78rem;cursor:pointer;text-decoration:underline">
+          ← Change passenger / cancel upgrade
+        </button>
+      </div>`;
+  }
+
+  // User picked a business seat from the inline picker
+  async function applyUpgradeSeat(seatId, seatNumber) {
+    const statusEl = document.getElementById('voucher-status');
+    try {
+      // Lock the new business seat
+      const lockRes = await post(`/flights/${flightId}/seats/${seatId}/lock`, {});
+
+      // Swap in selectedSeats — old economy seat lock will expire naturally
+      selectedSeats[_upgradeTargetIdx] = {
+        id: seatId, seatClass: 'BUSINESS', seatNumber,
+        lockExpiresAt: lockRes.lockExpiresAt
+      };
+
+      const passengers = window._passengers || [];
+      const pName      = passengers[_upgradeTargetIdx]?.name || `Passenger ${_upgradeTargetIdx + 1}`;
+      const economyPriceFmt = formatMoney(dynamicPriceForClass('ECONOMY'));
+
+      statusEl.innerHTML = `
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;
+                    padding:.7rem 1rem;font-size:.84rem;color:#15803d;
+                    display:flex;justify-content:space-between;align-items:center">
+          <span>🎟 <strong>${pName}</strong> upgraded to Business Seat <strong>${seatNumber}</strong>
+                — paying Economy price <strong>${economyPriceFmt}</strong></span>
+          <button onclick="cancelUpgradeSelection()"
+            style="background:none;border:none;cursor:pointer;color:#dc2626;
+                   font-size:1rem;padding:0 .3rem" title="Remove upgrade">✕</button>
+        </div>`;
+      updateSummary();
+    } catch(e) {
+      statusEl.innerHTML = `<div style="background:#fef2f2;border:1px solid #fecaca;
+                                        border-radius:8px;padding:.7rem 1rem;
+                                        color:#b91c1c;font-size:.84rem">
+        ❌ Could not reserve seat ${seatNumber}: ${e.message}
+      </div>`;
+    }
+  }
+
+  function cancelUpgradeSelection() {
+    window._upgradeVoucherActive = false;
+    window._upgradeVoucherCode   = null;
+    _upgradeTargetIdx            = null;
+    appliedVoucher               = null;
+    document.getElementById('voucher-input').value  = '';
+    document.getElementById('voucher-status').innerHTML = '';
+    updateSummary();
+  }
+
+  init();
+</script>
+</body>
+</html>

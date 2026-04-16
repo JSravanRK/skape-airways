@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>All Bookings — Admin</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<div class="admin-layout">
+  <aside class="admin-sidebar" style="position:relative">
+    <div style="padding:1.5rem 1.5rem 1rem;border-bottom:1px solid rgba(201,168,76,.1);margin-bottom:.5rem">
+      <div style="font-size:.58rem;font-weight:700;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.18em">Control Center</div>
+    </div>
+    <a href="/pages/admin/dashboard.html" class="sidebar-link ">📊 &nbsp;Dashboard</a>
+    <a href="/pages/admin/flights.html"   class="sidebar-link ">✈ &nbsp;Flights</a>
+    <a href="/pages/admin/bookings.html"  class="sidebar-link active">🎫 &nbsp;Bookings</a>
+    <a href="/pages/admin/users.html"     class="sidebar-link ">👥 &nbsp;Users</a>
+    <a href="/pages/admin/airports.html"  class="sidebar-link ">🏢 &nbsp;Airports</a>
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem;border-top:1px solid rgba(201,168,76,.1)">
+      <button onclick="Auth.logout()" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);color:rgba(255,130,130,.75);cursor:pointer;font-size:.82rem;padding:.5rem .9rem;border-radius:7px;font-family:'Outfit',sans-serif;width:100%">🚪 Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="admin-content">
+    <div class="flex-between mb-2">
+      <h1 class="page-title">All Bookings</h1>
+      <input type="text" id="search-input" placeholder="Search by reference or passenger..."
+             style="padding:.55rem 1rem;border:1.5px solid var(--cream-d);border-radius:8px;font-size:.9rem;width:280px;font-family:'Outfit',sans-serif;outline:none" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--cream-d)'"
+             oninput="filterBookings(this.value)"/>
+    </div>
+
+    <div id="alert-box"></div>
+    <div id="spinner" class="spinner"></div>
+
+    <div class="card hidden" id="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Reference</th><th>Passenger</th><th>Flight</th><th>Route</th>
+              <th>Departure</th><th>Seat</th><th>Amount</th><th>Status</th><th>Booked On</th>
+            </tr>
+          </thead>
+          <tbody id="bookings-tbody"></tbody>
+        </table>
+      </div>
+      <div id="no-results" class="text-center hidden" style="padding:2rem;color:var(--muted)">No bookings match your search.</div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAdmin();
+  renderNav();
+
+  let allBookings = [];
+
+  async function loadBookings() {
+    try {
+      allBookings = await get('/bookings/all');
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('table-card').classList.remove('hidden');
+      renderTable(allBookings);
+    } catch(e) {
+      showAlert('alert-box', e.message, 'error');
+      document.getElementById('spinner').style.display = 'none';
+    }
+  }
+
+  function renderTable(bookings) {
+    const tbody = document.getElementById('bookings-tbody');
+    if (!bookings.length) {
+      tbody.innerHTML = '';
+      document.getElementById('no-results').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('no-results').classList.add('hidden');
+    tbody.innerHTML = bookings.map(b => `
+      <tr>
+        <td><code style="font-size:.85rem">${b.bookingReference}</code></td>
+        <td>${b.passengerName || 'N/A'}<br/><span class="text-muted" style="font-size:.75rem">${b.passengerGender||''} ${b.passengerAge?'· Age '+b.passengerAge:''}</span></td>
+        <td>${b.flightNumber}</td>
+        <td>${b.fromCity} → ${b.toCity}</td>
+        <td>${formatDateTime(b.departureTime)}</td>
+        <td>${b.seatNumber} (${classLabel(b.seatClass)})</td>
+        <td><strong>${formatMoney(b.totalAmount)}</strong></td>
+        <td>${statusBadge(b.status)}</td>
+        <td>${formatDate(b.createdAt)}</td>
+      </tr>`).join('');
+  }
+
+  function filterBookings(query) {
+    const q = query.toLowerCase();
+    const filtered = allBookings.filter(b =>
+      b.bookingReference.toLowerCase().includes(q) ||
+      (b.passengerName || '').toLowerCase().includes(q) ||
+      b.flightNumber.toLowerCase().includes(q) ||
+      b.fromCity.toLowerCase().includes(q) ||
+      b.toCity.toLowerCase().includes(q)
+    );
+    renderTable(filtered);
+  }
+
+  loadBookings();
+</script>
+
+</body>
+</html>

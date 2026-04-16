@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Search Flights — Skape Airways</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <style>
+    .filter-sidebar { width:260px;flex-shrink:0; }
+    .filter-card { background:var(--white);border-radius:var(--radius);border:1px solid var(--cream-d);padding:1.5rem;margin-bottom:1rem; }
+    .filter-card h4 { font-size:.82rem;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem;padding-bottom:.65rem;border-bottom:1px solid var(--cream-d); }
+    .filter-row { display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem; }
+    .filter-row label { font-size:.86rem;color:var(--text-soft);cursor:pointer;display:flex;align-items:center;gap:.5rem; }
+    .filter-row input[type=checkbox] { accent-color:var(--navy);width:15px;height:15px; }
+    .price-range { width:100%;accent-color:var(--gold-d);cursor:pointer; }
+    .price-range-labels { display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-top:.35rem; }
+    .time-pill { padding:.35rem .75rem;border-radius:20px;font-size:.75rem;font-weight:600;cursor:pointer;border:1.5px solid var(--cream-d);background:var(--white);color:var(--text-soft);transition:all .2s; }
+    .time-pill.active { background:var(--navy);color:var(--gold-l);border-color:var(--navy); }
+    @media(max-width:800px){ .filter-sidebar{ display:none; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<!-- SEARCH HERO -->
+<div class="search-hero">
+  <div class="container">
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:1.9rem;font-weight:300;color:var(--white);margin-bottom:1.2rem;position:relative;z-index:1">Find Your <em style="color:var(--gold-l)">Perfect Flight</em></h1>
+    <div class="search-box" style="position:relative;z-index:1">
+      <div class="search-grid">
+        <div class="form-group"><label>🛫 From</label><select id="fromCode"><option value="">Select Origin</option></select></div>
+        <div class="form-group"><label>🛬 To</label><select id="toCode"><option value="">Select Destination</option></select></div>
+        <div class="form-group"><label>📅 Depart</label><input type="date" id="travelDate"/></div>
+        <button class="btn btn-gold" id="search-btn" onclick="doSearch()">Search →</button>
+      </div>
+      <div id="search-alert" style="margin-top:.75rem"></div>
+
+      <!-- Fare Calendar -->
+      <div id="fare-calendar" style="display:none;margin-top:1.2rem;border-top:1px solid var(--cream-d);padding-top:1rem">
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:.6rem">7-Day Cheapest Fares</div>
+        <div id="fare-calendar-days" style="display:grid;grid-template-columns:repeat(7,1fr);gap:.4rem"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT: Sidebar + Results -->
+<div class="container section">
+  <div style="display:flex;gap:1.5rem;align-items:flex-start">
+
+    <!-- ─── FILTER SIDEBAR ─── -->
+    <aside class="filter-sidebar" id="filter-sidebar" style="display:none">
+      <div class="flex-between" style="margin-bottom:1rem">
+        <div class="section-label" style="margin-bottom:0">Filters</div>
+        <button onclick="resetFilters()" style="background:none;border:none;font-size:.78rem;color:var(--primary);cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">Reset All</button>
+      </div>
+
+      <!-- Price Range -->
+      <div class="filter-card">
+        <h4>Max Price</h4>
+        <input type="range" class="price-range" id="filter-price" min="500" max="50000" step="500" value="50000" oninput="applyFilters()"/>
+        <div class="price-range-labels">
+          <span>₹500</span>
+          <span id="price-label" style="color:var(--navy);font-weight:600">Any</span>
+          <span>₹50k</span>
+        </div>
+      </div>
+
+      <!-- Departure Time -->
+      <div class="filter-card">
+        <h4>Departure Time</h4>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem">
+          <button class="time-pill active" data-time="all"   onclick="selectTime(this,'all')">All</button>
+          <button class="time-pill"        data-time="early" onclick="selectTime(this,'early')">🌅 Early<br><span style="font-size:.65rem;color:var(--muted)">00:00–06:00</span></button>
+          <button class="time-pill"        data-time="morn"  onclick="selectTime(this,'morn')">☀️ Morning<br><span style="font-size:.65rem;color:var(--muted)">06:00–12:00</span></button>
+          <button class="time-pill"        data-time="aft"   onclick="selectTime(this,'aft')">🌤 Afternoon<br><span style="font-size:.65rem;color:var(--muted)">12:00–18:00</span></button>
+          <button class="time-pill"        data-time="eve"   onclick="selectTime(this,'eve')">🌙 Evening<br><span style="font-size:.65rem;color:var(--muted)">18:00–24:00</span></button>
+        </div>
+      </div>
+
+      <!-- Seat Class -->
+      <div class="filter-card">
+        <h4>Cabin Class</h4>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.87rem;margin-bottom:.5rem;cursor:pointer"><input type="checkbox" id="f-eco"   checked onchange="applyFilters()"> Economy</label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.87rem;margin-bottom:.5rem;cursor:pointer"><input type="checkbox" id="f-biz"   checked onchange="applyFilters()"> Business Class</label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.87rem;cursor:pointer"><input type="checkbox" id="f-first" checked onchange="applyFilters()"> First Class</label>
+      </div>
+
+      <!-- Sort -->
+      <div class="filter-card">
+        <h4>Sort By</h4>
+        <select id="sort-select" onchange="applyFilters()" style="width:100%;padding:.6rem .8rem;border:1.5px solid var(--cream-d);border-radius:8px;font-family:'Outfit',sans-serif;font-size:.86rem;background:var(--white)">
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="depart-asc">Depart: Earliest First</option>
+          <option value="depart-desc">Depart: Latest First</option>
+          <option value="duration">Shortest Duration</option>
+        </select>
+      </div>
+    </aside>
+
+    <!-- ─── RESULTS ─── -->
+    <div style="flex:1;min-width:0">
+      <div id="results-area">
+        <div class="text-center" style="padding:4rem;color:var(--muted)">
+          <div style="font-size:3rem;margin-bottom:1rem">✈️</div>
+          <h3 style="font-size:1.4rem;margin-bottom:.5rem;color:var(--text-soft)">Ready to Take Off?</h3>
+          <p style="font-size:.9rem">Search for flights above to see available options.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer style="background:var(--deep);border-top:1px solid rgba(201,168,76,.1)">
+  <div class="footer-inner"><div class="footer-bottom"><span>© 2026 <span class="footer-gold">Skape Airways</span></span><span>Secure · Trusted · Premium</span></div></div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  renderNav('search');
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('travelDate').min   = today;
+  document.getElementById('travelDate').value = today;
+
+  let allFlights = [], selectedTimeFilter = 'all';
+
+  // ── Trip type ──────────────────────────────────
+  let tripType = 'oneway';
+
+  // ── Airports ───────────────────────────────────
+  async function loadAirports() {
+    const airports = await get('/airports');
+    const fromSel  = document.getElementById('fromCode');
+    const toSel    = document.getElementById('toCode');
+    airports.forEach(a => {
+      const opt = `<option value="${a.code}">${a.code} — ${a.city}</option>`;
+      fromSel.innerHTML += opt; toSel.innerHTML += opt;
+    });
+    const p = new URLSearchParams(location.search);
+    if (p.get('from'))  fromSel.value = p.get('from');
+    if (p.get('to'))    toSel.value   = p.get('to');
+    if (p.get('date'))  document.getElementById('travelDate').value = p.get('date');
+    if (p.get('from') && p.get('to') && p.get('date')) doSearch();
+  }
+  loadAirports();
+
+  // ── Fare Calendar ──────────────────────────────
+  function hideFareCalendar() { document.getElementById('fare-calendar').style.display = 'none'; }
+
+  async function loadFareCalendar() {
+    const from = document.getElementById('fromCode').value;
+    const to   = document.getElementById('toCode').value;
+    const date = document.getElementById('travelDate').value;
+    if (!from || !to || !date) return;
+    document.getElementById('fare-calendar').style.display = 'block';
+    const daysEl = document.getElementById('fare-calendar-days');
+    daysEl.innerHTML = '<div style="color:var(--muted);font-size:.8rem;grid-column:1/-1">Loading fares...</div>';
+    const base = new Date(date);
+    const days = Array.from({length:7}, (_,i) => { const d=new Date(base); d.setDate(d.getDate()+i-1); return d.toISOString().split('T')[0]; });
+    const results = await Promise.allSettled(days.map(d => get(`/flights/search?from=${from}&to=${to}&date=${d}`)));
+    daysEl.innerHTML = days.map((d,i) => {
+      const flights = results[i].status==='fulfilled' ? results[i].value : [];
+      const minPrice = flights.length ? Math.min(...flights.map(f=>f.dynamicEconomyPrice||f.economyPrice)) : null;
+      const isSel = d === date;
+      const isPast = d < today;
+      const lbl = new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+      if (isPast) return `<div style="text-align:center;padding:.45rem .2rem;border-radius:7px;opacity:.38;border:1px dashed var(--cream-d)"><div style="font-size:.62rem;color:var(--muted)">${lbl}</div><div style="font-size:.68rem;color:var(--muted);margin-top:.15rem">—</div></div>`;
+      const bg = isSel?'var(--navy)':'var(--white)';
+      const pr = minPrice ? `<div style="font-size:.7rem;font-weight:700;color:${isSel?'var(--gold-l)':'var(--gold-d)'};margin-top:.15rem">₹${(minPrice/1000).toFixed(1)}k</div>` : `<div style="font-size:.68rem;color:var(--muted);margin-top:.15rem">—</div>`;
+      return `<div onclick="selectCalendarDay('${d}')" style="text-align:center;padding:.45rem .2rem;border-radius:7px;cursor:${minPrice?'pointer':'default'};background:${bg};border:1.5px solid ${isSel?'var(--navy)':minPrice?'rgba(201,168,76,.3)':'var(--cream-d)'};transition:all .2s">
+        <div style="font-size:.62rem;font-weight:600;color:${isSel?'rgba(255,255,255,.65)':'var(--muted)'}">${lbl}</div>${pr}</div>`;
+    }).join('');
+  }
+  function selectCalendarDay(d) { document.getElementById('travelDate').value = d; doSearch(); loadFareCalendar(); }
+  document.getElementById('fromCode').addEventListener('change', loadFareCalendar);
+  document.getElementById('toCode').addEventListener('change', loadFareCalendar);
+  document.getElementById('travelDate').addEventListener('change', loadFareCalendar);
+
+  // ── Search ─────────────────────────────────────
+  function demandBadge(label, pct) {
+    const map = { SELLING_FAST:['#dc2626','🔥 Selling Fast'], HIGH_DEMAND:['#d97706','📈 High Demand'], FILLING_UP:['#d97706','⚡ Filling Up'], AVAILABLE:['#16a34a','✅ Available'], LOW_DEMAND:['#64748b','🟢 Available'] };
+    const [color, text] = map[label] || ['#64748b','Available'];
+    const surge = pct > 0 ? `<span style="font-size:.68rem;color:${color};margin-left:.2rem">+${pct}%</span>` : '';
+    return `<span class="demand-badge" style="background:${color}14;color:${color}">${text}</span>${surge}`;
+  }
+
+  async function doSearch() {
+    const from = document.getElementById('fromCode').value;
+    const to   = document.getElementById('toCode').value;
+    const date = document.getElementById('travelDate').value;
+    if (!from||!to||!date){ showAlert('search-alert','Please fill all fields.','error'); return; }
+    if (from===to){ showAlert('search-alert','Origin and destination cannot be the same.','error'); return; }
+    const btn = document.getElementById('search-btn');
+    setLoading(btn, true);
+    document.getElementById('results-area').innerHTML = '<div class="spinner"></div>';
+    try {
+      allFlights = await get(`/flights/search?from=${from}&to=${to}&date=${date}`);
+      document.getElementById('filter-sidebar').style.display = allFlights.length ? '' : 'none';
+      // Reset filters
+      document.getElementById('filter-price').value = 50000;
+      document.getElementById('price-label').textContent = 'Any';
+      selectedTimeFilter = 'all';
+      document.querySelectorAll('.time-pill').forEach(p=>p.classList.remove('active'));
+      document.querySelector('[data-time="all"]').classList.add('active');
+      applyFilters(from, to);
+    } catch(e) {
+      document.getElementById('results-area').innerHTML = `<div class="alert alert-error">⚠️ ${e.message}</div>`;
+    } finally { setLoading(btn, false); }
+  }
+
+  // ── Filters ─────────────────────────────────────
+  function selectTime(el, val) {
+    selectedTimeFilter = val;
+    document.querySelectorAll('.time-pill').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    applyFilters();
+  }
+
+  function resetFilters() {
+    document.getElementById('filter-price').value = 50000;
+    document.getElementById('price-label').textContent = 'Any';
+    selectedTimeFilter = 'all';
+    document.querySelectorAll('.time-pill').forEach(p=>p.classList.remove('active'));
+    document.querySelector('[data-time="all"]').classList.add('active');
+    ['f-eco','f-biz','f-first'].forEach(id => document.getElementById(id).checked = true);
+    document.getElementById('sort-select').value = 'price-asc';
+    applyFilters();
+  }
+
+  function applyFilters(from, to) {
+    const maxPrice = parseInt(document.getElementById('filter-price').value);
+    document.getElementById('price-label').textContent = maxPrice >= 50000 ? 'Any' : '₹'+maxPrice.toLocaleString('en-IN');
+    const ecoOn   = document.getElementById('f-eco').checked;
+    const bizOn   = document.getElementById('f-biz').checked;
+    const firstOn = document.getElementById('f-first').checked;
+    const sort    = document.getElementById('sort-select').value;
+
+    const timeRanges = { early:[0,6], morn:[6,12], aft:[12,18], eve:[18,24] };
+
+    let filtered = allFlights.filter(f => {
+      if (f.dynamicEconomyPrice > maxPrice) return false;
+      const hr = new Date(f.departureTime).getHours();
+      if (selectedTimeFilter !== 'all') {
+        const [lo,hi] = timeRanges[selectedTimeFilter];
+        if (hr < lo || hr >= hi) return false;
+      }
+      return true;
+    });
+
+    filtered.sort((a,b) => {
+      if (sort === 'price-asc')   return a.dynamicEconomyPrice - b.dynamicEconomyPrice;
+      if (sort === 'price-desc')  return b.dynamicEconomyPrice - a.dynamicEconomyPrice;
+      if (sort === 'depart-asc')  return new Date(a.departureTime) - new Date(b.departureTime);
+      if (sort === 'depart-desc') return new Date(b.departureTime) - new Date(a.departureTime);
+      if (sort === 'duration')    return a.durationMinutes - b.durationMinutes;
+      return 0;
+    });
+
+    renderFlights(filtered);
+  }
+
+  function renderFlights(flights) {
+    const area = document.getElementById('results-area');
+    const from = document.getElementById('fromCode').value;
+    const to   = document.getElementById('toCode').value;
+
+    if (!flights.length) {
+      area.innerHTML = `<div class="card text-center" style="padding:3.5rem"><div style="font-size:3rem;margin-bottom:1rem">😔</div><h3 style="font-size:1.4rem;margin-bottom:.5rem">No Flights Match</h3><p class="text-muted">Try adjusting your filters.</p></div>`;
+      return;
+    }
+
+    area.innerHTML = `
+      <div class="flex-between mb-2" style="flex-wrap:wrap;gap:.75rem">
+        <div>
+          <div class="section-label">${flights.length} flight${flights.length!==1?'s':''} available</div>
+          <h2 class="page-title">${from} → ${to}</h2>
+        </div>
+      </div>
+      ${flights.map(f => `
+        <div class="flight-card">
+          <div>
+            <div class="airline-badge-sm"><span class="airline-dot"></span>${f.airlineName||'Skape Airways'} · ${f.flightNumber}</div>
+            <div class="flight-time">${formatTime(f.departureTime)}</div>
+            <div class="flight-city">${f.fromCity}</div>
+            <div style="font-size:.74rem;color:var(--muted)">${f.fromCode}</div>
+          </div>
+          <div class="flight-line">
+            <div class="flight-duration">${formatDuration(f.durationMinutes)}</div>
+            <div class="flight-track"><div class="track-line"></div><div class="track-plane">✈</div><div class="track-line"></div></div>
+            <div style="font-size:.71rem;color:var(--muted)">Non-stop</div>
+            <div style="margin-top:.3rem">${seatUrgencyBadge(f.availableSeats)}</div>
+          </div>
+          <div>
+            <div class="flight-time">${formatTime(f.arrivalTime)}</div>
+            <div class="flight-city">${f.toCity}</div>
+            <div style="font-size:.74rem;color:var(--muted)">${f.toCode}</div>
+          </div>
+          <div>
+            ${demandBadge(f.demandLabel, f.priceChangePercent)}
+            <div style="display:grid;gap:.3rem;margin:.4rem 0">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:.5rem">
+                <span style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Economy</span>
+                <strong style="font-family:'Cormorant Garamond',serif;font-size:1.2rem">${formatMoney(f.dynamicEconomyPrice)}</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:.5rem">
+                <span style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Business</span>
+                <strong style="font-family:'Cormorant Garamond',serif;font-size:1.1rem">${formatMoney(f.dynamicBusinessPrice)}</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:.5rem">
+                <span style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">First</span>
+                <strong style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--gold-d)">${formatMoney(f.dynamicFirstClassPrice)}</strong>
+              </div>
+            </div>
+            <button class="btn btn-gold btn-sm" style="width:100%" onclick="window.location.href='/pages/book.html?flightId=${f.id}'">Select →</button>
+          </div>
+        </div>`).join('')}`;
+  }
+</script>
+</body>
+</html>

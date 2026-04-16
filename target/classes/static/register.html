@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Account — Skape Airways</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="/index.html">✦ SKAPE <span class="logo-pill">AIRWAYS</span></a>
+  <div class="nav-links" id="main-nav"></div>
+</nav>
+
+<div class="auth-layout">
+  <!-- LEFT: Visual Panel -->
+  <div class="auth-visual">
+    <div class="auth-visual-bg"></div>
+    <div class="auth-visual-overlay"></div>
+    <div class="auth-visual-content">
+      <div style="font-size:.7rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem">Begin Your Journey</div>
+      <h2>Join the world of<br><em style="color:var(--gold-l)">Skape Airways</em></h2>
+      <p style="margin-top:.75rem">Create your free account and start earning SkyMiles on every flight you book with us.</p>
+
+      <div style="margin-top:1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.15);border-radius:10px;padding:1rem">
+          <div style="font-size:1.4rem;margin-bottom:.3rem">🌟</div>
+          <div style="font-size:.8rem;font-weight:600;color:rgba(255,255,255,.7)">SkyMiles</div>
+          <div style="font-size:.73rem;color:rgba(255,255,255,.38);margin-top:.2rem">Earn on every flight</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.15);border-radius:10px;padding:1rem">
+          <div style="font-size:1.4rem;margin-bottom:.3rem">🎫</div>
+          <div style="font-size:.8rem;font-weight:600;color:rgba(255,255,255,.7)">E-Tickets</div>
+          <div style="font-size:.73rem;color:rgba(255,255,255,.38);margin-top:.2rem">Instant delivery</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.15);border-radius:10px;padding:1rem">
+          <div style="font-size:1.4rem;margin-bottom:.3rem">💺</div>
+          <div style="font-size:.8rem;font-weight:600;color:rgba(255,255,255,.7)">Seat Choice</div>
+          <div style="font-size:.73rem;color:rgba(255,255,255,.38);margin-top:.2rem">Pick your favourite</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.15);border-radius:10px;padding:1rem">
+          <div style="font-size:1.4rem;margin-bottom:.3rem">🔔</div>
+          <div style="font-size:.8rem;font-weight:600;color:rgba(255,255,255,.7)">Price Alerts</div>
+          <div style="font-size:.73rem;color:rgba(255,255,255,.38);margin-top:.2rem">Never miss a deal</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Form Panel -->
+  <div class="auth-form-panel">
+    <div class="auth-card">
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <div style="font-size:2rem;margin-bottom:.5rem">✦</div>
+        <h2>Create Account</h2>
+        <p class="subtitle">Join Skape Airways for free</p>
+      </div>
+
+      <div id="alert-box"></div>
+
+      <div class="form-group mb-2">
+        <label>Full Name</label>
+        <input type="text" id="name" placeholder="Rajesh Kumar"/>
+      </div>
+      <div class="form-group mb-2">
+        <label>Email Address</label>
+        <input type="email" id="email" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group mb-2">
+        <label>Phone Number</label>
+        <input type="tel" id="phone" placeholder="+91 98765 43210"/>
+      </div>
+      <div class="form-group mb-2">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Minimum 6 characters"/>
+      </div>
+      <div class="form-group mb-2">
+        <label>Confirm Password</label>
+        <input type="password" id="confirm-password" placeholder="Re-enter your password"/>
+      </div>
+
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6">
+        By creating an account, you agree to our <a href="#" style="color:var(--primary)">Terms of Service</a> and <a href="#" style="color:var(--primary)">Privacy Policy</a>.
+      </p>
+
+      <button class="btn btn-gold btn-full" id="reg-btn" onclick="register()">Create My Account</button>
+
+      <p class="text-center mt-2 text-muted" style="font-size:.9rem">
+        Already have an account? <a href="/login.html" style="color:var(--primary);font-weight:600;text-decoration:none">Sign In →</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<footer style="background:var(--deep);border-top:1px solid rgba(201,168,76,.1)">
+  <div class="footer-inner">
+    <div class="footer-bottom">
+      <span>© 2026 <span class="footer-gold">Skape Airways</span></span>
+      <span>Secure · Trusted · Premium</span>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  if (Auth.isLoggedIn()) window.location.href = '/index.html';
+
+  async function register() {
+    const name    = document.getElementById('name').value.trim();
+    const email   = document.getElementById('email').value.trim();
+    const phone   = document.getElementById('phone').value.trim();
+    const pass    = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm-password').value;
+    const btn     = document.getElementById('reg-btn');
+    if (!name || !email || !pass)        { showAlert('alert-box','Please fill all required fields.','error'); return; }
+    if (pass !== confirm)                 { showAlert('alert-box','Passwords do not match.','error'); return; }
+    if (pass.length < 6)                  { showAlert('alert-box','Password must be at least 6 characters.','error'); return; }
+    setLoading(btn, true);
+    try {
+      const data = await post('/auth/register', { name, email, phone, password: pass });
+      Auth.save(data);
+      window.location.href = '/index.html';
+    } catch(e) {
+      showAlert('alert-box', e.message, 'error');
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+</script>
+</body>
+</html>
